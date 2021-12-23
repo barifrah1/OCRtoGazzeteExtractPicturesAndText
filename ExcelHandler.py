@@ -19,25 +19,27 @@ class ExcelHandler:
 
     def get_row_by_application_number(self, date, num):
         self.rows = self.get_rows_from_date(date)
-        return self.rows[self.rows["Application No."] == str(num)]
+        return self.rows[self.rows["Application No."] == int(num)]
 
     def get_class_by_application_number(self, date, num):
         self.rows = self.get_rows_from_date(date)
         return int(self.rows[self.rows["Application No."] == num]["Class No."].values[0])
 
     def get_trademark_data_by_application_number(self, date, num):
-        self.rows = self.get_rows_from_date(date)
-        row = self.rows[self.rows["Application No."] == str(num)]
-        di = {'application_number': row["Application No."],
-              'class_number': row["Application No."],
-              'type': 'Text' if ('Word' in str(row['Symbol Contents']) and str(row['Sign']) != '') else 'Image',
-              'initial_no': row["Initial No."],
-              'date_published': Utils.remove_og_from_date(row["Publication dd//mm/yyyy"]),
-              'applicant': row["Applicant"],
-              'Local Agent': row["Local Agent"],
-              'date_applicated': row["Date of Application"],
-              'Sign': row["Sign"].to_list()[0]
-              }
+        row = self.get_row_by_application_number(date, num)
+        if(row.shape[0] == 1):
+            di = {'application_number': row["Application No."],
+                  'class_number': row["Application No."],
+                  'type': 'Text' if ('Word' in str(row['Symbol Contents']) and str(row['Sign']) != '') else 'Image',
+                  'initial_no': row["Initial No."],
+                  'date_published': date,
+                  'applicant': row["Applicant"],
+                  'Local Agent': row["Local Agent"],
+                  'date_applicated': row["Date of Application"],
+                  'Sign': row["Sign"].to_list()[0]
+                  }
+        else:
+            raise Exception(f"more than one row wher found for app_num {num}",)
         return di
 
     def is_trademark_type_text(self, app_num):

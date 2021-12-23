@@ -39,7 +39,7 @@ def convert_file_date(file_date):
         result[DAY] = result[DAY][1]  # remove zero
     if(int(result[MONTH]) < 9):
         result[MONTH] = result[MONTH][1]  # remove zero
-    return result[DAY]+'.'+result[MONTH]+'.'+result[YEAR]
+    return result[DAY]+'.'+result[MONTH]+'.'+'19'+result[YEAR]
 
 
 def is_htm_file(file_name):
@@ -88,8 +88,8 @@ def create_folder_if_not_exist(folder_name):
         os.mkdir(folder_name)
 
 
-def check_if_num_in_string(num, string):
-    if(str(num) in string):
+def check_if_num_in_string(num, tag):
+    if(str(num) in tag.text):
         return True
     else:
         return False
@@ -100,3 +100,11 @@ def remove_og_from_date(date):
         return date.split(' ')[1]
     else:
         raise ValueError
+
+
+def get_only_zero_value_from_dict(dict):
+    keys_with_zero_values = []
+    for key in dict.keys():
+        if(dict[key] == 0):
+            keys_with_zero_values.append(key)
+    return keys_with_zero_values

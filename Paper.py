@@ -1,12 +1,10 @@
-from pandas.io import excel
-from Consts import PAPERS_FOLDER, STATUS_FOLDER, PROJECT_PATH
+from Consts import PAPERS_FOLDER, STATUS_FOLDER
 import pandas as pd
 from TextTrademark import TextTrademark
 from ImageTrademark import ImageTrademark
 import Utils
 import os
-import ExcelHandler
-import HtmlHandler
+from HtmlHandler import HtmlHandler
 FIle_NAME_INDEX = 0
 
 
@@ -19,7 +17,8 @@ class Paper:
             self.status_path = STATUS_FOLDER+'/'+self.file_name+'.txt'
             self.paper_date = Utils.convert_file_date(self.file_name)
             self.rows_for_date = excel.get_rows_from_date(self.paper_date)
-            self.number_of_rows = len(self.rows_for_date)
+            self.number_of_rows = len(self.rows_for_date.values.tolist())
+            self.excel = excel
             Utils.create_folder_if_not_exist(STATUS_FOLDER)
             # if current file havent been analyzed yet ,extract already finished on empty_mode (no 1's in already done dictionary)
             is_status_file_path_exists = os.path.exists(
@@ -32,13 +31,17 @@ class Paper:
         except Exception as e:
             print(
                 f'failed to create paper object and process file: {file} eror is: {e}')
+            raise Exception(e)
 
     def extract(self):
         d = {}
-        is_exist = os.path.exists(self.original_file_name)
+        is_exist = os.path.exists(
+            './'+PAPERS_FOLDER+'/'+self.file_name)
         if(is_exist == False):
+            os.chdir(PAPERS_FOLDER)
             os.mkdir(self.file_name)
-        for i in range(1, 40):
+            os.chdir('..')
+        for i in range(1, self.number_of_rows+1):
             if(i not in self.romans_done):
                 try:
                     d[i] = self.extract_trademark_by_roman_number(i)
@@ -54,7 +57,9 @@ class Paper:
 
     def get_already_finished(self, excel, empty_mode=False):
         romans = []
-        rows = excel[excel["Publication dd//mm/yyyy"] == 'OG '+self.paper_date]
+        excel_rows = excel.excel
+        rows = excel_rows[excel_rows["Publication dd//mm/yyyy"]
+                          == 'OG '+self.paper_date]
         application_numbers = rows["Application No."].values.tolist()
         done = {int(key): 0 for key in application_numbers}
         if(empty_mode == False):
@@ -75,14 +80,14 @@ class Paper:
             i)
         if(application_number_tag is not None):
             # future developmentnumbers = Utils.parse_numbers_from_string(application_number_tag,self.rows_for_date)
-            keys_not_found_yet = list(self.already_done.keys())[
-                list(self.already_done.values()).index(0)]
+            keys_not_found_yet = Utils.get_only_zero_value_from_dict(
+                self.already_done)
             # check for all app_number not used yet from this date if it appears in application tag
             app_num_and_class_flag, application_number, class_number = self.check_if_class_and_app_num_in_tag(
                 keys_not_found_yet, application_number_tag)
             if(app_num_and_class_flag):
                 # if true, we can get all the data for application num from excel
-                trademark_data = excel.get_trademark_data_by_application_number(
+                trademark_data = self.excel.get_trademark_data_by_application_number(
                     self.paper_date, application_number)
                 trademark_type = trademark_data["type"]
                 if(trademark_type == "Text"):
@@ -113,11 +118,11 @@ class Paper:
         else:
             return None
 
-    def check_if_class_and_app_num_in_tag(keys_not_found_yet, application_number_tag):
+    def check_if_class_and_app_num_in_tag(self, keys_not_found_yet, application_number_tag):
         app_num_and_class_flag = False
         for app_num in keys_not_found_yet:
             if(Utils.check_if_num_in_string(app_num, application_number_tag)):
-                class_num = excel.get_class_by_application_number(
+                class_num = self.excel.get_class_by_application_number(
                     self.paper_date, app_num)
                 if(Utils.check_if_num_in_string(class_num, application_number_tag)):
                     # both class and application number havent been found yet

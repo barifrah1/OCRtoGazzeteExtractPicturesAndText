@@ -1,25 +1,20 @@
-from datetime import date
-import pandas as pd
-import imgkit
 import os
-import shutil
-from requests.api import options
-from difflib import SequenceMatcher
-from fuzzywuzzy import fuzz, process
-
-# new needed
-import ExcelHandler
+from ExcelHandler import ExcelHandler
 from Consts import PAPERS_FOLDER
 from Paper import Paper
-from Utils import is_htm_file
+import Utils
 
 if __name__ == '__main__':
     d = {}
     excel = ExcelHandler()
     for file in os.listdir(PAPERS_FOLDER):
-        if(is_htm_file(file)):
-            paper = Paper(file, excel)
-            paper.extract()
+        if(Utils.is_htm_file(file)):
+            try:
+                paper = Paper(file, excel)
+                paper.extract()
+            except Exception as e:
+                continue
+
     # for i in range(1,28):
     #     if(i not in romans_done):
     #         try:

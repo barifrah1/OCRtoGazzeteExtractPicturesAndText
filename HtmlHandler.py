@@ -4,14 +4,18 @@ import Utils
 from bs4 import BeautifulSoup
 from fuzzywuzzy import fuzz, process
 from difflib import SequenceMatcher
+import html5lib
 
 
 class HtmlHandler:
     def __init__(self, fp):
-        self.soup = BeautifulSoup(fp, 'html5lib')
+        self.soup = BeautifulSoup(fp, 'html.parser')
         self.body = self.soup.find('body')
         self.head = self.soup.find('head')
         self.style = self.head.find('style')
+        self.all_romans = []
+        for i in range(1, 100):
+            self.all_romans.append(Utils.int_to_Roman(i)+'.')
 
     # checks wheather or not table tag is the child of body and an ancestor of tag
     def does_table_is_ancestor(self, tag):
@@ -47,11 +51,12 @@ class HtmlHandler:
                 (roman_number+'.'), tag.text) > 90 and len(tag.text) <= 9)
         return roman_tag
 
-    def find_application_number_tag(self, roman_tag):
+    def find_application_number_tag(self, i):
+        roman_tag = self.find_roman_number(i)
         flag = True
         application_tag = None
         application_tag_fuzzy = None
-        next = roman_tag
+        next = self.find_body_child(roman_tag)
         while(flag):
             # in case that next tag is '\n'
             if(isinstance(next, str) == True):
@@ -62,6 +67,8 @@ class HtmlHandler:
                 if(application_tag is None and application_tag_fuzzy is None):
                     application_tag_fuzzy = next.find(lambda t: t.name == "span" and (fuzz.partial_ratio(
                         ('No.').lower(), t.text.lower()) > 65 and fuzz.partial_ratio(('Class').lower(), t.text.lower()) >= 20))
+            if(application_tag is not None or application_tag_fuzzy is not None):
+                flag = False
             next = next.next_sibling
         if(application_tag is not None):
             return application_tag
@@ -86,9 +93,9 @@ class HtmlHandler:
                 s = self.build_html_file(text_trade_mark_tag)
                 return s
 
-    def find_image_tag(application_number_tag):
+    def find_image_tag(self, application_number_tag):
         image_flag = True
-        next = application_number_tag.next_sibling
+        next = self.find_body_child(application_number_tag)
         while(image_flag):
             if(isinstance(next, str) == True):
                 next = next.next_sibling
@@ -99,11 +106,6 @@ class HtmlHandler:
                     image = next.find(lambda t: t.name == "img")
                 if(image != None):
                     return image
-                    src = image.attrs['src']
-                    image_location = str(src).split('/')
-                    copy_image(r'auto/'+image_location[0]+'/'+image_location[1],
-                               ORIGINAL_DATE_FORMAT+'/'+str(application_number)+'.png')
-                    break
                 else:
                     next = next.next_sibling
 

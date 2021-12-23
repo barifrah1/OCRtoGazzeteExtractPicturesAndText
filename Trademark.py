@@ -8,8 +8,9 @@ import ExcelHandler
 
 
 class Trademark:
-    def __init__(self, index, application_number=-1, class_number=-1, initial_no=-1, applicant=None, local_agent=None, date_published=None, date_applicated=None):
+    def __init__(self, index, tag, application_number=-1, class_number=-1, initial_no=-1, applicant=None, local_agent=None, date_published=None, date_applicated=None):
         self.index = index
+        self.tag = None
         self.roman_index = Utils.int_to_Roman(index)
         self.application_number = application_number
         self.class_number = class_number
@@ -20,5 +21,5 @@ class Trademark:
         self.date_applicated = date_applicated
         self.image_path = None
 
-    def Extract(self):
+    def save_trademark(self):
         raise NotImplementedError
