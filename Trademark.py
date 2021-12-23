@@ -2,18 +2,23 @@ from pandas.io import excel
 from Consts import PAPERS_FOLDER
 import pandas as pd
 from bs4 import BeautifulSoup
-import Utils 
+import Utils
 import os
 import ExcelHandler
+
+
 class Trademark:
-    def __init__(self,index,application_number=-1,class_no=-1,initial_no=-1,address=None): 
+    def __init__(self, index, application_number=-1, class_number=-1, initial_no=-1, applicant=None, local_agent=None, date_published=None, date_applicated=None):
         self.index = index
         self.roman_index = Utils.int_to_Roman(index)
         self.application_number = application_number
-        self.class_no = class_no
+        self.class_number = class_number
         self.initial_no = initial_no
-        self.address = address
+        self.applicant = applicant
+        self.local_agent = local_agent
+        self.date_published = date_published
+        self.date_applicated = date_applicated
         self.image_path = None
 
-    
-      
+    def Extract(self):
+        raise NotImplementedError
