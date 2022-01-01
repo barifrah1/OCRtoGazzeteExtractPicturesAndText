@@ -28,20 +28,29 @@ class ExcelHandler:
     def get_trademark_data_by_application_number(self, date, num):
         row = self.get_row_by_application_number(date, num)
         if(row.shape[0] == 1):
-            di = {'application_number': row["Application No."],
-                  'class_number': row["Application No."],
-                  'type': 'Text' if ('Word' in str(row['Symbol Contents']) and str(row['Sign']) != '') else 'Image',
-                  'initial_no': row["Initial No."],
+            di = {'application_number': str(int(row["Application No."].values[0])),
+                  'class_number': row["Class No."].values[0],
+                  'type': Utils.parse_trademark_type(row),
+                  'initial_no': row["Initial No."].values[0],
                   'date_published': date,
-                  'applicant': row["Applicant"],
-                  'Local Agent': row["Local Agent"],
-                  'date_applicated': row["Date of Application"],
-                  'Sign': row["Sign"].to_list()[0]
+                  'applicant': row["Applicant"].values[0],
+                  'local_agent': row["Local Agent"].values[0],
+                  'date_applicated': row["Date of Application"].values[0],
+                  'sign': row["Sign"].to_list()[0]
                   }
         else:
-            raise Exception(f"more than one row wher found for app_num {num}",)
+            raise Exception(f"more than one row were found for app_num {num}",)
         return di
 
     def is_trademark_type_text(self, app_num):
         row = self.rows[self.rows["Application No."] == app_num]
         return ('Word' in str(row['Symbol Contents']) and str(row['Sign']) != '')
+
+    def get_all_images_rows(self, date):
+        self.rows = self.get_rows_from_date(date)
+        images_rows = []
+        for row in self.rows:
+            type = Utils.parse_trademark_type(row)
+            if(type == 'Image'):
+                images_rows.append[row]
+        return images_rows

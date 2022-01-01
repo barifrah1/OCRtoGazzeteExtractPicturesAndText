@@ -21,5 +21,5 @@ class Trademark:
         self.date_applicated = date_applicated
         self.image_path = None
 
-    def save_trademark(self):
+    def save_trademark(self, folder_name):
         raise NotImplementedError

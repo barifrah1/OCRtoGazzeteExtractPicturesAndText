@@ -1,6 +1,8 @@
 import datetime
 import os
-# get: integer, returns its roman number as string
+from fuzzywuzzy import fuzz, process
+
+# convert integer to roman number for example : 1 to I, 2 to II
 
 
 def int_to_Roman(num):
@@ -25,6 +27,19 @@ def int_to_Roman(num):
         i += 1
     return roman_num
 
+
+# convert roman string to int
+def roman_to_int(S: str) -> int:
+    roman = {'I': 1, 'V': 5, 'X': 10, 'L': 50, 'C': 100, 'D': 500, 'M': 1000}
+    summ = 0
+    for i in range(len(S)-1, -1, -1):
+        num = roman[S[i]]
+        if 3*num < summ:
+            summ = summ-num
+        else:
+            summ = summ+num
+    return summ
+
 # convert date from yy-mm-dd to d.m.yyyy
 
 
@@ -41,12 +56,14 @@ def convert_file_date(file_date):
         result[MONTH] = result[MONTH][1]  # remove zero
     return result[DAY]+'.'+result[MONTH]+'.'+'19'+result[YEAR]
 
+# check if file is .htm
+
 
 def is_htm_file(file_name):
     return len(file_name.split('.')) > 1 and file_name.split('.')[1] == 'htm'
 
 
-def parse_numbers_from_string(s, excel_rows_for_date):
+def parse_numbers_from_string(s, excel_rows_for_date, keys_not_found_yet):
     numbers = []
     current = []
     for index, t in enumerate(s):
@@ -56,11 +73,16 @@ def parse_numbers_from_string(s, excel_rows_for_date):
             if((t == ' ' or t == ',' or (t == '.' and index+1 < len(s) and s[index+1].isdigit() == False)) and len(current) > 0):
                 try:
                     num = int(''.join(map(str, current)))
+                    if(len(numbers) == 0 and num not in keys_not_found_yet):
+                        raise Exception(
+                            "application number not in keys_not_found_yet")
                 except Exception as e:
                     candidates = []
                     application_and_class_array = excel_rows_for_date[[
                         "Application No.", "Class No."]].values
                     for row in application_and_class_array:
+                        if(row[0] not in keys_not_found_yet):
+                            continue
                         if(len(numbers) == 0):  # application_number
                             candidate = str(int(row[0])).lower()
                             candidates.append(candidate)
@@ -81,11 +103,15 @@ def parse_numbers_from_string(s, excel_rows_for_date):
                     current.append(t)
     return numbers
 
+# get folder name and checks if it already exists , if not create it using mkdir
+
 
 def create_folder_if_not_exist(folder_name):
     # if status folder doesnt exist yet, create it
     if(os.path.exists(folder_name) == False):
         os.mkdir(folder_name)
+
+# checks if num shows in tag.text
 
 
 def check_if_num_in_string(num, tag):
@@ -94,12 +120,16 @@ def check_if_num_in_string(num, tag):
     else:
         return False
 
+# remove the word OG from string
 
-def remove_og_from_date(date):
+
+def remove_og_from_date(date: str):
     if(date is not None and date != ""):
         return date.split(' ')[1]
     else:
         raise ValueError
+
+# get dictionary and return keys with value is 0
 
 
 def get_only_zero_value_from_dict(dict):
@@ -108,3 +138,26 @@ def get_only_zero_value_from_dict(dict):
         if(dict[key] == 0):
             keys_with_zero_values.append(key)
     return keys_with_zero_values
+
+
+def convert_to_int_then_str(x):
+    try:
+        y = str(int(x))
+        return y
+    except Exception as e:
+        raise Exception(f"Cannot convert {x} to int or string")
+
+# get row from excel , return trademark type
+
+
+def parse_trademark_type(row):
+    if('Word' in str(row['Symbol Contents'].values[0]) and 'Symbol' in str(row['Symbol Contents'].values[0])):
+        return 'Image'
+    elif(('Word' in str(row['Symbol Contents'].values[0]) and str(row['Sign'].values[0]) != '')):
+        return 'Text'
+    else:
+        return 'Image'
+
+
+def add_curly_braces_to_string(s):
+    return '{'+s+'}'

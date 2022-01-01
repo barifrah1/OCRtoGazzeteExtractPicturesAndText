@@ -11,16 +11,12 @@ if __name__ == '__main__':
         if(Utils.is_htm_file(file)):
             try:
                 paper = Paper(file, excel)
-                paper.extract()
+                paper.extract_text_trademarks_not_found()
+                paper.extract(verification_level=1)
+                paper.extract_by_excel(verification_level=1)
+                paper.extract(verification_level=2)
+                paper.extract_by_excel(verification_level=2)
+                # paper_iteration2 = Paper(file, excel)
+                # paper_iteration2.extract(verification_level=2)
             except Exception as e:
                 continue
-
-    # for i in range(1,28):
-    #     if(i not in romans_done):
-    #         try:
-    #             d[i]=extract_image_of_roman_number_i(i)
-    #         except Exception as e:
-    #             print(i,e, 'failed')
-    #     else:
-    #         print(f"{i} already done")
-    # print(d)

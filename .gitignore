@@ -128,8 +128,15 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-
+*xlsx
 /papers
 /status
 /extracted_images
+/old
+/pickles
+/html
+/papers_to_convert
+/xml
+Basic
+Basic2
 OG in progress.xlsx
