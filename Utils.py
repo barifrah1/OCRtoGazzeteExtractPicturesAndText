@@ -1,6 +1,6 @@
 import datetime
 import os
-from fuzzywuzzy import fuzz, process
+from fuzzywuzzy import fuzz, process, utils
 
 # convert integer to roman number for example : 1 to I, 2 to II
 
@@ -103,6 +103,19 @@ def parse_numbers_from_string(s, excel_rows_for_date, keys_not_found_yet):
                     current.append(t)
     return numbers
 
+
+def check_if_string_contain_appnum_tag(string):
+    return ('No.' in string or 'No,' in string) and ('Class' in string or 'Clans' in string)
+# check if one of array elements is in the string
+
+
+def is_array_element_in_string(string, array):
+    for a in array:
+        result = check_if_num_in_text(a, string)
+        if(result):
+            return a
+    return -1
+
 # get folder name and checks if it already exists , if not create it using mkdir
 
 
@@ -119,6 +132,17 @@ def check_if_num_in_string(num, tag):
         return True
     else:
         return False
+
+
+# checks if num is in string
+
+
+def check_if_num_in_text(num, s):
+    if(str(num) in s):
+        return True
+    else:
+        return False
+
 
 # remove the word OG from string
 

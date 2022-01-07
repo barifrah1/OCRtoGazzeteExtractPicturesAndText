@@ -1,3 +1,4 @@
+from typing import ByteString
 import zipfile
 import os
 from lxml import etree
@@ -5,7 +6,7 @@ from Consts import XML_FOLDER, PAPERS_FOLDER
 import pandas as pd
 import Utils
 import docx
-from shutil import rmtree
+from shutil import copy, rmtree
 
 
 class XMLHandler:
@@ -75,8 +76,10 @@ class XMLHandler:
                             wframe_element = ppr_element.find(
                                 self.ns['w']+'framePr')
                             cords['page'] = self.page_numbers[-1]
-                            cords['x'] = wframe_element.attrib[self.ns['w']+'x']
-                            cords['y'] = wframe_element.attrib[self.ns['w']+'y']
+                            cords['x'] = int(
+                                wframe_element.attrib[self.ns['w']+'x'])
+                            cords['y'] = int(
+                                wframe_element.attrib[self.ns['w']+'y'])
                             self.image_data[rId] = cords
                         except Exception as e:
                             print(e)
@@ -85,6 +88,77 @@ class XMLHandler:
             elif(elem.tag == self.ns["w"]+'footnotePr'):
                 self.page_numbers.append(self.page_numbers[-1]+1)
         print(self.image_data)
+
+    def find_application_numbers_tags_of_images(self, application_numbers_to_search):
+        application_numers_left = application_numbers_to_search.copy()
+        self.application_numbers_cords = {}
+        pages = [0]
+        for elem in self.tree.iter():
+            if(elem.tag == self.ns['w']+'p'):
+                text = self.get_text_from_paragraph(elem)
+                if(Utils.check_if_string_contain_appnum_tag(text)):
+                    result = Utils.is_array_element_in_string(
+                        text, application_numers_left)
+                    if(result != -1):
+                        app_num = result
+                        x, y = self.get_cords_from_paragraph(elem)
+                        self.application_numbers_cords[str(app_num)] = {
+                            'x': x, 'y': y, 'page': pages[-1]}
+                        application_numers_left.remove(app_num)
+            elif(elem.tag == self.ns["w"]+'footnotePr'):
+                pages.append(pages[-1]+1)
+        print(self.application_numbers_cords)
+
+    def match_between_image_and_app_num(self):
+        matches = {}
+        for key in self.application_numbers_cords.keys():
+            tag_page = int(self.application_numbers_cords[key]['page'])
+            tag_x = int(self.application_numbers_cords[key]['x'])
+            tag_y = int(self.application_numbers_cords[key]['y'])
+            best = self.get_image_candidate_by_tag(tag_page, tag_x, tag_y)
+            matches[key] = best
+        print(matches)
+        return matches
+
+    def get_image_candidate_by_tag(self, tag_page, tag_x, tag_y):
+        candidates = {}
+        best = None
+        for key, value in self.image_data.items():
+            # picture is on the left bar on the same page
+            if(value['page'] == tag_page and tag_y <= value['y'] and ((tag_x < 4000 and value['x'] < 4000) or (tag_x > 4000 and value['x'] > 4000))):
+                candidates[key] = self.image_data[key]
+        if(len(candidates) > 0):
+            min_y = 100000000
+            for k, v in candidates.items():
+                if(v['y'] < min_y):
+                    min_y = v['y']
+                    best = k
+            return best
+        else:
+            for key, value in self.image_data.items():
+                if(value['page'] == tag_page and tag_y >= value['y'] and ((tag_x < 4000 and value['x'] > 4000))):
+                    candidates[key] = self.image_data[key]
+        if(len(candidates) > 0):
+            min_y = 100000000
+            for k, v in candidates.items():
+                if(v['y'] < min_y):
+                    min_y = v['y']
+                    best = k
+            return best
+        else:
+            # picture is on the right bar on the next page
+            for key, value in self.image_data.items():
+                if(value['page'] == tag_page+1 and tag_y >= value['y'] and ((tag_x > 4000 and value['x'] < 4000))):
+                    candidates[key] = self.image_data[key]
+        if(len(candidates) > 0):
+            min_y = 100000000
+            for k, v in candidates.items():
+                if(v['y'] < min_y):
+                    min_y = v['y']
+                    best = k
+            return best
+        else:
+            return best
 
     def build_namespaces_dict(self):
         self.ns["w"] = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
@@ -97,11 +171,30 @@ class XMLHandler:
             parent = parent.getparent()
         return parent
 
+    # get w:p tag and extract it's cordinates using w:framePr x w:x and w:y
+    def get_cords_from_paragraph(self, p_tag):
+        w_ppr = p_tag.find(self.ns['w']+'pPr')
+        w_frame_pPr = w_ppr.find(self.ns['w']+'framePr')
+        x = w_frame_pPr.attrib[self.ns['w']+'x']
+        y = w_frame_pPr.attrib[self.ns['w']+'y']
+        return x, y
+
+    def get_text_from_paragraph(self, p_tag):
+        text = ""
+        w_rs = p_tag.findall(self.ns['w']+'r')
+        for w_r in w_rs:
+            w_t = w_r.find(self.ns['w']+'t')
+            text += w_r.find(self.ns['w']+'t').text + \
+                ' ' if w_t is not None else ""
+        return text
+
     if __name__ == '__main__':
         try:
             from XMLHandler import XMLHandler
             xml = XMLHandler('40-09-19')
             xml.find_all_images_in_xml()
+            xml.find_application_numbers_tags_of_images([5559, 5536, 5568])
+            matches = xml.match_between_image_and_app_num()
             rmtree('./'+XML_FOLDER+'/'+'40-09-19')
         except Exception as e:
             rmtree('./'+XML_FOLDER+'/'+'40-09-19')
