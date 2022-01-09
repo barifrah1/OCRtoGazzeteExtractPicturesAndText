@@ -1,11 +1,14 @@
-from Consts import PAPERS_FOLDER, STATUS_FOLDER, PICKLES_FOLDER
+from shutil import rmtree
+from Consts import PAPERS_FOLDER, STATUS_FOLDER, PICKLES_FOLDER, XML_FOLDER
 import pickle
 from StatusHandler import StatusHandler
 from TextTrademark import TextTrademark
 from ImageTrademark import ImageTrademark
+from ImageTrademarkXML import ImageTrademarkXML
 import Utils
 import os
 from HtmlHandler import HtmlHandler
+from XMLHandler import XMLHandler
 FIle_NAME_INDEX = 0
 NOT_FOUND = 0
 
@@ -22,6 +25,7 @@ class Paper:
             self.number_of_rows = len(self.rows_for_date.values.tolist())
             self.excel = excel
             self.status_handler = StatusHandler(self.file_name)
+            self.xml = XMLHandler(self.file_name, self.rows_for_date)
             Utils.create_folder_if_not_exist(STATUS_FOLDER)
             # if current file havent been analyzed yet ,extract already finished on empty_mode (no 1's in already done dictionary)
             is_status_file_path_exists = os.path.exists(
@@ -31,6 +35,7 @@ class Paper:
             with open(self.paper_path, encoding="utf8") as fp:
                 self.html = HtmlHandler(fp)
             self.trademarks = []
+            self.images_app_nums_to_search = []
         except Exception as e:
             print(
                 f'failed to create paper object and process file: {file} eror is: {e}')
@@ -49,11 +54,18 @@ class Paper:
                 try:
                     d[i] = self.extract_trademark(
                         i, verification_level=verification_level)
-                    # self.save_paper_to_pickle()
                 except Exception as e:
                     print("number ", i, "failed due to: ", e,)
             else:
                 print(f"{i} already done")
+        images_rows = self.excel.get_all_images_app_nums(
+            self.paper_date)
+        app_nums_left = []
+        for app_num in images_rows:
+            if(self.already_done[app_num] == 0):
+                app_nums_left.append(app_num)
+        self.images_app_nums_to_search = app_nums_left
+        self.extract_image_trademarks()
         print(d)
 
     def extract_by_excel(self, verification_level=1):
@@ -107,7 +119,6 @@ class Paper:
         else:
             application_number_tag = application_tag
         if(application_number_tag is not None):
-            # future developmentnumbers = Utils.parse_numbers_from_string(application_number_tag,self.rows_for_date)
             keys_not_found_yet = Utils.get_only_zero_value_from_dict(
                 self.already_done)
             # check for all app_number not used yet from this date if it appears in application tag
@@ -120,13 +131,13 @@ class Paper:
             if(app_num_and_class_flag):
                 # if true, we can get all the data for application num from excel
                 # update that this app_num found
-                self.already_done[application_number] = 1
                 trademark_data = self.excel.get_trademark_data_by_application_number(
                     self.paper_date, application_number)
-                # create txt or image trademark accordint to trademark type
-                trademark = self.create_trademark(
-                    i, trademark_data, application_number_tag)
-        else:
+                if(trademark_data["type"] == 'Text'):
+                    self.already_done[application_number] = 1
+                    # create txt or image trademark accordint to trademark type
+                    trademark = self.create_trademark(
+                        i, trademark_data, application_number_tag)
             return None
 
     def check_if_class_and_app_num_in_tag(self, keys_not_found_yet, application_number_tag):
@@ -157,7 +168,7 @@ class Paper:
                 return True, application_number, class_num
         return None, -1, -1
 
-    def create_trademark(self, i, trademark_data, application_number_tag):
+    def create_trademark(self, i, trademark_data, application_number_tag, image_name=None):
         trademark_type = trademark_data["type"]
         if(trademark_type == "Text"):
             word_to_search = trademark_data["sign"]
@@ -171,14 +182,15 @@ class Paper:
                     "local_agent"], date_applicated=trademark_data["date_applicated"],
             )
         elif(trademark_type == 'Image'):
-            image_tag = self.html.find_image_tag(
-                application_number_tag)
-            trademark = ImageTrademark(
-                i, image_tag, application_number=trademark_data["application_number"], class_number=trademark_data[
-                    "class_number"], initial_no=trademark_data["initial_no"], date_published=trademark_data["date_published"],
-                applicant=trademark_data["applicant"], local_agent=trademark_data[
-                    "local_agent"], date_applicated=trademark_data["date_applicated"],
-            )
+            # image_tag = self.html.find_image_tag(
+            #     application_number_tag)
+            if(image_name is not None):
+                trademark = ImageTrademarkXML(
+                    i, None, image_name, application_number=trademark_data["application_number"], class_number=trademark_data[
+                        "class_number"], initial_no=trademark_data["initial_no"], date_published=trademark_data["date_published"],
+                    applicant=trademark_data["applicant"], local_agent=trademark_data[
+                        "local_agent"], date_applicated=trademark_data["date_applicated"],
+                )
         else:
             raise Exception(
                 "trademark type is not defined text/image")
@@ -187,10 +199,6 @@ class Paper:
             trademark.application_number, trademark.index)
         self.trademarks.append(trademark)
         return trademark
-
-    def save_paper_to_pickle(self):
-        pickle.dump(self, open('./'+PICKLES_FOLDER +
-                    '/'+self.file_name+'.pickle', 'wb'))
 
     def extract_text_trademarks_not_found(self):
         for j in list(self.already_done.keys()):
@@ -207,3 +215,20 @@ class Paper:
                 except Exception as e:
                     print(
                         f"extract_text_trademarks_not_found: {j} failed due to: {e}")
+
+    def extract_image_trademarks(self):
+        try:
+            text_app_nums = self.excel.get_all_text_app_nums(self.paper_date)
+            self.xml.find_application_numbers_tags_of_images(
+                self.images_app_nums_to_search, text_app_nums)
+            matches = self.xml.match_between_image_and_app_num()
+            for key in matches.keys():
+                app_num = key
+                trademark_data = self.excel.get_trademark_data_by_application_number(
+                    self.paper_date, app_num)
+                self.already_done[app_num] = 1
+                trademark = self.create_trademark(-1, trademark_data,
+                                                  None, image_name=matches[app_num])
+        except Exception as e:
+            rmtree('./'+XML_FOLDER+'/'+self.file_name)
+            raise(e)

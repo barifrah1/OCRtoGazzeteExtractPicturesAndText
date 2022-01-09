@@ -46,11 +46,32 @@ class ExcelHandler:
         row = self.rows[self.rows["Application No."] == app_num]
         return ('Word' in str(row['Symbol Contents']) and str(row['Sign']) != '')
 
-    def get_all_images_rows(self, date):
+    def get_all_images_app_nums(self, date):
         self.rows = self.get_rows_from_date(date)
-        images_rows = []
-        for row in self.rows:
-            type = Utils.parse_trademark_type(row)
+        app_nums = []
+        for index, row in self.rows.iterrows():
+            if('Word' in str(row['Symbol Contents']) and 'Symbol' in str(row['Symbol Contents'])):
+                type = 'Image'
+            elif(('Word' in str(row['Symbol Contents']) and str(row['Sign']) != '')):
+                type = 'Text'
+            else:
+                type = 'Image'
+
             if(type == 'Image'):
-                images_rows.append[row]
-        return images_rows
+                app_nums.append(int((row['Application No.'])))
+        return app_nums
+
+    def get_all_text_app_nums(self, date):
+        self.rows = self.get_rows_from_date(date)
+        app_nums = []
+        for index, row in self.rows.iterrows():
+            if('Word' in str(row['Symbol Contents']) and 'Symbol' in str(row['Symbol Contents'])):
+                type = 'Image'
+            elif(('Word' in str(row['Symbol Contents']) and str(row['Sign']) != '')):
+                type = 'Text'
+            else:
+                type = 'Image'
+
+            if(type == 'Text'):
+                app_nums.append(int((row['Application No.'])))
+        return app_nums

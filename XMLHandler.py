@@ -10,7 +10,7 @@ from shutil import copy, rmtree
 
 
 class XMLHandler:
-    def __init__(self, paper_date):
+    def __init__(self, paper_date, rows_for_date):
         self.paper_date = paper_date
         with zipfile.ZipFile('./'+PAPERS_FOLDER+'/'+paper_date+'.docx', "r") as zip_ref:
             path = './'+XML_FOLDER+'/'+paper_date
@@ -25,9 +25,10 @@ class XMLHandler:
         self.tree.write(path+'/indent.xml')
         self.images_path = path+'/word/media'
         self.images_names = os.listdir(self.images_path)
+        self.rows_for_date = rows_for_date
         self.map_rId_to_image_name()
-
         self.build_namespaces_dict()
+        self.find_all_images_in_xml()
 
     # map rId of all images from document.xml.rels file
     def map_rId_to_image_name(self):
@@ -75,6 +76,8 @@ class XMLHandler:
                             ppr_element = p_element.find(self.ns['w']+'pPr')
                             wframe_element = ppr_element.find(
                                 self.ns['w']+'framePr')
+                            if(wframe_element is None):
+                                break
                             cords['page'] = self.page_numbers[-1]
                             cords['x'] = int(
                                 wframe_element.attrib[self.ns['w']+'x'])
@@ -89,7 +92,7 @@ class XMLHandler:
                 self.page_numbers.append(self.page_numbers[-1]+1)
         print(self.image_data)
 
-    def find_application_numbers_tags_of_images(self, application_numbers_to_search):
+    def find_application_numbers_tags_of_images(self, application_numbers_to_search, text_app_nums):
         application_numers_left = application_numbers_to_search.copy()
         self.application_numbers_cords = {}
         pages = [0]
@@ -104,7 +107,21 @@ class XMLHandler:
                         x, y = self.get_cords_from_paragraph(elem)
                         self.application_numbers_cords[str(app_num)] = {
                             'x': x, 'y': y, 'page': pages[-1]}
-                        application_numers_left.remove(app_num)
+                        if(app_num in application_numers_left):
+                            application_numers_left.remove(app_num)
+                    else:
+                        numbers = Utils.parse_numbers_from_string(
+                            text, self.rows_for_date, application_numers_left)
+                        if(len(numbers) > 0):
+                            if(Utils.is_array_element_in_string(text, [numbers[0]]) and numbers[0] not in text_app_nums):
+                                app_num = numbers[0]
+                                if(app_num == -1):
+                                    continue
+                                x, y = self.get_cords_from_paragraph(elem)
+                                self.application_numbers_cords[str(app_num)] = {
+                                    'x': x, 'y': y, 'page': pages[-1]}
+                                if(app_num in application_numers_left):
+                                    application_numers_left.remove(app_num)
             elif(elem.tag == self.ns["w"]+'footnotePr'):
                 pages.append(pages[-1]+1)
         print(self.application_numbers_cords)
@@ -117,6 +134,12 @@ class XMLHandler:
             tag_y = int(self.application_numbers_cords[key]['y'])
             best = self.get_image_candidate_by_tag(tag_page, tag_x, tag_y)
             matches[key] = best
+        for app_num, rId in matches.items():
+            if(rId is not None):
+                image_name = self.rId_dict[rId]
+                matches[app_num] = image_name
+            else:
+                matches[app_num] = -1
         print(matches)
         return matches
 
@@ -188,14 +211,15 @@ class XMLHandler:
                 ' ' if w_t is not None else ""
         return text
 
-    if __name__ == '__main__':
-        try:
-            from XMLHandler import XMLHandler
-            xml = XMLHandler('40-09-19')
-            xml.find_all_images_in_xml()
-            xml.find_application_numbers_tags_of_images([5559, 5536, 5568])
-            matches = xml.match_between_image_and_app_num()
-            rmtree('./'+XML_FOLDER+'/'+'40-09-19')
-        except Exception as e:
-            rmtree('./'+XML_FOLDER+'/'+'40-09-19')
-            raise(e)
+    # if __name__ == '__main__':
+    #     try:
+    #         from XMLHandler import XMLHandler
+    #         xml = XMLHandler('48-02-12')
+    #         xml.find_all_images_in_xml()
+    #         xml.find_application_numbers_tags_of_images(
+    #             [7589, 7823, 8684, 8704, 8772, 8877, 8973, 8974, 9010, 9042, 9043, 9099])
+    #         matches = xml.match_between_image_and_app_num()
+    #         rmtree('./'+XML_FOLDER+'/'+'48-02-12')
+    #     except Exception as e:
+    #         rmtree('./'+XML_FOLDER+'/'+'48-02-12')
+    #         raise(e)
