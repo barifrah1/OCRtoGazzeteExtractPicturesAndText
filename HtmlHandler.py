@@ -83,7 +83,7 @@ class HtmlHandler:
                 next = next.next_sibling
             if(application_tag is None):
                 application_tag = next.find(lambda t: t.name == "span" and (
-                    ('No.' in t.text or 'No,' in t.text) and ('Class' in t.text or 'Clans' in t.text)))
+                    ('No.' in t.text or 'No,' in t.text or 'No.' in t.text or 'No ' in t.text) and ('Class' in t.text or 'Clans' in t.text)))
                 if(application_tag is None and application_tag_fuzzy is None):
                     application_tag_fuzzy = next.find(lambda t: t.name == "span" and (fuzz.partial_ratio(
                         ('No.').lower(), t.text.lower()) > 65 and fuzz.partial_ratio(('Class').lower(), t.text.lower()) >= 20))
@@ -97,7 +97,7 @@ class HtmlHandler:
 
     def find_application_number_in_body(self, app_num):
         application_tag = self.body.find(lambda t: t.name == "span" and (
-            ('No.' in t.text or 'No,' in t.text) and ('Class' in t.text or 'Clans' in t.text)) and str(app_num) in t.text)
+            ('No.' in t.text or 'No,' in t.text or 'No ' in t.text) and ('Class' in t.text or 'Clans' in t.text)) and str(app_num) in t.text)
         return application_tag
 
     def extract_application_number_tag_by_roman(self, i):

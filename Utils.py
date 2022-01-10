@@ -92,7 +92,7 @@ def parse_numbers_from_string(s, excel_rows_for_date, keys_not_found_yet):
                         else:
                             return numbers
                     results = process.extract(s.lower(), candidates)
-                    if(results[0][1] > results[1][1]):
+                    if(len(results) > 1 and results[0][1] > results[1][1]):
                         num = int(results[0][0])
                     else:
                         num = -1
@@ -105,7 +105,7 @@ def parse_numbers_from_string(s, excel_rows_for_date, keys_not_found_yet):
 
 
 def check_if_string_contain_appnum_tag(string):
-    return ('No.' in string or 'No,' in string) and ('Class' in string or 'Clans' in string)
+    return ('No.' in string or 'No,' in string or 'No ') and ('Class' in string or 'Clans' in string)
 # check if one of array elements is in the string
 
 

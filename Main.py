@@ -16,7 +16,6 @@ if __name__ == '__main__':
                 paper.extract_by_excel(verification_level=1)
                 paper.extract(verification_level=2)
                 paper.extract_by_excel(verification_level=2)
-                # paper_iteration2 = Paper(file, excel)
-                # paper_iteration2.extract(verification_level=2)
             except Exception as e:
+                print(e)
                 continue

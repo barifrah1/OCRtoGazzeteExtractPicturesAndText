@@ -64,8 +64,10 @@ class Paper:
         for app_num in images_rows:
             if(self.already_done[app_num] == 0):
                 app_nums_left.append(app_num)
-        self.images_app_nums_to_search = app_nums_left
-        self.extract_image_trademarks()
+        if(len(app_nums_left) > 0):
+            self.images_app_nums_to_search = app_nums_left
+            self.extract_image_trademarks(
+                verification_level=verification_level)
         print(d)
 
     def extract_by_excel(self, verification_level=1):
@@ -134,10 +136,13 @@ class Paper:
                 trademark_data = self.excel.get_trademark_data_by_application_number(
                     self.paper_date, application_number)
                 if(trademark_data["type"] == 'Text'):
-                    self.already_done[application_number] = 1
                     # create txt or image trademark accordint to trademark type
-                    trademark = self.create_trademark(
-                        i, trademark_data, application_number_tag)
+                    try:
+                        trademark = self.create_trademark(
+                            i, trademark_data, application_number_tag)
+                        self.already_done[application_number] = 1
+                    except Exception as e:
+                        print(e)
             return None
 
     def check_if_class_and_app_num_in_tag(self, keys_not_found_yet, application_number_tag):
@@ -212,23 +217,32 @@ class Paper:
                             self.paper_date, j)
                         trademark = self.create_trademark(-2,
                                                           trademark_data, None)
+                        self.already_done[int(
+                            trademark_data['application_number'])] = 1
                 except Exception as e:
                     print(
                         f"extract_text_trademarks_not_found: {j} failed due to: {e}")
 
-    def extract_image_trademarks(self):
+    def extract_image_trademarks(self, verification_level=1):
         try:
             text_app_nums = self.excel.get_all_text_app_nums(self.paper_date)
+            if(verification_level >= 2):
+                for i in text_app_nums:
+                    # cases when excel says word but it's picture
+                    if(self.already_done[i] == 0):
+                        self.images_app_nums_to_search.append(i)
+                        text_app_nums.remove(i)
             self.xml.find_application_numbers_tags_of_images(
-                self.images_app_nums_to_search, text_app_nums)
+                self.images_app_nums_to_search, text_app_nums, verification_level=verification_level)
             matches = self.xml.match_between_image_and_app_num()
             for key in matches.keys():
                 app_num = key
-                trademark_data = self.excel.get_trademark_data_by_application_number(
-                    self.paper_date, app_num)
-                self.already_done[app_num] = 1
-                trademark = self.create_trademark(-1, trademark_data,
-                                                  None, image_name=matches[app_num])
+                if(matches[key] != -1):
+                    trademark_data = self.excel.get_trademark_data_by_application_number(
+                        self.paper_date, app_num)
+                    trademark = self.create_trademark(-1, trademark_data,
+                                                      None, image_name=matches[app_num])
+                    self.already_done[int(app_num)] = 1
         except Exception as e:
             rmtree('./'+XML_FOLDER+'/'+self.file_name)
             raise(e)

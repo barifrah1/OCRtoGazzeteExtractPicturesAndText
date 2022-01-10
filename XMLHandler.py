@@ -92,11 +92,13 @@ class XMLHandler:
                 self.page_numbers.append(self.page_numbers[-1]+1)
         print(self.image_data)
 
-    def find_application_numbers_tags_of_images(self, application_numbers_to_search, text_app_nums):
+    def find_application_numbers_tags_of_images(self, application_numbers_to_search, text_app_nums, verification_level=1):
         application_numers_left = application_numbers_to_search.copy()
         self.application_numbers_cords = {}
         pages = [0]
         for elem in self.tree.iter():
+            if(len(application_numers_left) == 0):
+                break
             if(elem.tag == self.ns['w']+'p'):
                 text = self.get_text_from_paragraph(elem)
                 if(Utils.check_if_string_contain_appnum_tag(text)):
@@ -109,7 +111,7 @@ class XMLHandler:
                             'x': x, 'y': y, 'page': pages[-1]}
                         if(app_num in application_numers_left):
                             application_numers_left.remove(app_num)
-                    else:
+                    elif(verification_level == 2):
                         numbers = Utils.parse_numbers_from_string(
                             text, self.rows_for_date, application_numers_left)
                         if(len(numbers) > 0):
@@ -122,6 +124,7 @@ class XMLHandler:
                                     'x': x, 'y': y, 'page': pages[-1]}
                                 if(app_num in application_numers_left):
                                     application_numers_left.remove(app_num)
+
             elif(elem.tag == self.ns["w"]+'footnotePr'):
                 pages.append(pages[-1]+1)
         print(self.application_numbers_cords)
@@ -146,7 +149,13 @@ class XMLHandler:
     def get_image_candidate_by_tag(self, tag_page, tag_x, tag_y):
         candidates = {}
         best = None
+        # calculate which images havent been used yet
+        images_not_used = {}
         for key, value in self.image_data.items():
+            if('used' not in value.keys()):
+                images_not_used[key] = value
+        # find best image according to it's position and tag position
+        for key, value in images_not_used.items():
             # picture is on the left bar on the same page
             if(value['page'] == tag_page and tag_y <= value['y'] and ((tag_x < 4000 and value['x'] < 4000) or (tag_x > 4000 and value['x'] > 4000))):
                 candidates[key] = self.image_data[key]
@@ -156,9 +165,10 @@ class XMLHandler:
                 if(v['y'] < min_y):
                     min_y = v['y']
                     best = k
+            self.image_data[k]['used'] = 1
             return best
         else:
-            for key, value in self.image_data.items():
+            for key, value in images_not_used.items():
                 if(value['page'] == tag_page and tag_y >= value['y'] and ((tag_x < 4000 and value['x'] > 4000))):
                     candidates[key] = self.image_data[key]
         if(len(candidates) > 0):
@@ -167,10 +177,11 @@ class XMLHandler:
                 if(v['y'] < min_y):
                     min_y = v['y']
                     best = k
+            self.image_data[k]['used'] = 1
             return best
         else:
             # picture is on the right bar on the next page
-            for key, value in self.image_data.items():
+            for key, value in images_not_used.items():
                 if(value['page'] == tag_page+1 and tag_y >= value['y'] and ((tag_x > 4000 and value['x'] < 4000))):
                     candidates[key] = self.image_data[key]
         if(len(candidates) > 0):
@@ -179,6 +190,7 @@ class XMLHandler:
                 if(v['y'] < min_y):
                     min_y = v['y']
                     best = k
+            self.image_data[k]['used'] = 1
             return best
         else:
             return best
