@@ -1,7 +1,7 @@
 import datetime
 import os
 from fuzzywuzzy import fuzz, process, utils
-
+from Consts import PAPERS_FOLDER, XML_FOLDER, ACCURACY_FILE_NAME
 # convert integer to roman number for example : 1 to I, 2 to II
 
 
@@ -63,45 +63,22 @@ def is_htm_file(file_name):
     return len(file_name.split('.')) > 1 and file_name.split('.')[1] == 'htm'
 
 
-def parse_numbers_from_string(s, excel_rows_for_date, keys_not_found_yet):
-    numbers = []
-    current = []
-    for index, t in enumerate(s):
-        if(t.isdigit()):
-            current.append(t)
-        else:
-            if((t == ' ' or t == ',' or (t == '.' and index+1 < len(s) and s[index+1].isdigit() == False)) and len(current) > 0):
-                try:
-                    num = int(''.join(map(str, current)))
-                    if(len(numbers) == 0 and num not in keys_not_found_yet):
-                        raise Exception(
-                            "application number not in keys_not_found_yet")
-                except Exception as e:
-                    candidates = []
-                    application_and_class_array = excel_rows_for_date[[
-                        "Application No.", "Class No."]].values
-                    for row in application_and_class_array:
-                        if(row[0] not in keys_not_found_yet):
-                            continue
-                        if(len(numbers) == 0):  # application_number
-                            candidate = str(int(row[0])).lower()
-                            candidates.append(candidate)
-                        elif(len(numbers) == 1):
-                            candidate = str(int(row[1])).lower()
-                            candidates.append(candidate)
-                        else:
-                            return numbers
-                    results = process.extract(s.lower(), candidates)
-                    if(len(results) > 1 and results[0][1] > results[1][1]):
-                        num = int(results[0][0])
-                    else:
-                        num = -1
-                numbers.append(num)
-                current = []
-            else:
-                if(len(current) > 0 and current[0].isdigit()):
-                    current.append(t)
-    return numbers
+def is_docx_file(file_name):
+    return len(file_name.split('.')) > 1 and file_name.split('.')[1] == 'docx'
+
+
+def is_paper_folder_exist(folder_name):
+    if(os.path.exists('./'+XML_FOLDER+'/'+folder_name) == False):
+        return False
+    else:
+        return True
+
+
+def is_real_file_exist(paper_name):
+    if(os.path.exists('./'+XML_FOLDER+'/'+paper_name+'/media/'+ACCURACY_FILE_NAME) == False and os.path.exists('./'+XML_FOLDER+'/'+paper_name+'/word/media/'+ACCURACY_FILE_NAME) == False):
+        return False
+    else:
+        return True
 
 
 def check_if_string_contain_appnum_tag(string):
@@ -185,3 +162,52 @@ def parse_trademark_type(row):
 
 def add_curly_braces_to_string(s):
     return '{'+s+'}'
+
+
+def parse_numbers_from_string(s, excel_rows_for_date, keys_not_found_yet):
+    numbers = []
+    current = []
+    for index, t in enumerate(s):
+        if(t.isdigit()):
+            current.append(t)
+        else:
+            if((t == ' ' or t == ',' or (t == '.' and index+1 < len(s) and s[index+1].isdigit() == False)) and len(current) > 0):
+                try:
+                    num = int(''.join(map(str, current)))
+                    if(len(numbers) == 0 and num not in keys_not_found_yet):
+                        raise Exception(
+                            "application number not in keys_not_found_yet")
+                except Exception as e:
+                    candidates = []
+                    application_and_class_array = excel_rows_for_date[[
+                        "Application No.", "Class No."]].values
+                    for row in application_and_class_array:
+                        if(row[0] not in keys_not_found_yet):
+                            continue
+                        if(len(numbers) == 0):  # application_number
+                            candidate = str(int(row[0])).lower()
+                            candidates.append(candidate)
+                        elif(len(numbers) == 1):
+                            candidate = str(int(row[1])).lower()
+                            candidates.append(candidate)
+                        else:
+                            return numbers
+                    results = process.extract(s.lower(), candidates)
+                    if(len(results) > 1 and results[0][1] > results[1][1]):
+                        num = int(results[0][0])
+                    else:
+                        num = -1
+                numbers.append(num)
+                current = []
+            else:
+                if(len(current) > 0 and current[0].isdigit()):
+                    current.append(t)
+    return numbers
+
+
+@staticmethod
+def check_if_word_includes_digit(word):
+    for ch in word:
+        if(ch.is_digit()):
+            return True
+    return False

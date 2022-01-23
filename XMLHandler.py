@@ -7,17 +7,25 @@ import pandas as pd
 import Utils
 import docx
 from shutil import copy, rmtree
+from TextHandler import TextHandler
 
 
 class XMLHandler:
     def __init__(self, paper_date, rows_for_date):
         self.paper_date = paper_date
+        self.text_handler = TextHandler()
+        # if folder with images already exist dont extract files
         with zipfile.ZipFile('./'+PAPERS_FOLDER+'/'+paper_date+'.docx', "r") as zip_ref:
             path = './'+XML_FOLDER+'/'+paper_date
-            Utils.create_folder_if_not_exist(path)
-
-            zip_ref.extractall(path)
-            xml_content = zip_ref.read('word/document.xml')
+            if(Utils.is_paper_folder_exist(paper_date) == False):
+                Utils.create_folder_if_not_exist(path)
+                zip_ref.extractall(path)
+                xml_content = zip_ref.read('word/document.xml')
+            else:
+                parsed = etree.parse(
+                    './'+XML_FOLDER+'/'+paper_date+'/word/document.xml')
+                xml_content = etree.tostring(
+                    parsed, encoding='utf8', method='xml')
         tree = etree.fromstring(xml_content)
         self.tree = etree.ElementTree(tree)
         self.ns = {}  # namespace dict
@@ -83,6 +91,7 @@ class XMLHandler:
                                 wframe_element.attrib[self.ns['w']+'x'])
                             cords['y'] = int(
                                 wframe_element.attrib[self.ns['w']+'y'])
+                            cords['name'] = self.rId_dict[rId]
                             self.image_data[rId] = cords
                         except Exception as e:
                             print(e)
@@ -92,7 +101,7 @@ class XMLHandler:
                 self.page_numbers.append(self.page_numbers[-1]+1)
         print(self.image_data)
 
-    def find_application_numbers_tags_of_images(self, application_numbers_to_search, text_app_nums, verification_level=1):
+    def find_application_numbers_tags_of_images(self, application_numbers_to_search, verification_level=1):
         application_numers_left = application_numbers_to_search.copy()
         self.application_numbers_cords = {}
         pages = [0]
@@ -101,23 +110,25 @@ class XMLHandler:
                 break
             if(elem.tag == self.ns['w']+'p'):
                 text = self.get_text_from_paragraph(elem)
-                if(Utils.check_if_string_contain_appnum_tag(text)):
+                if(self.text_handler.check_if_string_contain_appnum_tag(text)):
                     result = Utils.is_array_element_in_string(
                         text, application_numers_left)
                     if(result != -1):
                         app_num = result
                         x, y = self.get_cords_from_paragraph(elem)
                         self.application_numbers_cords[str(app_num)] = {
-                            'x': x, 'y': y, 'page': pages[-1]}
+                            'x': x, 'y': y, 'page': pages[-1], }
                         if(app_num in application_numers_left):
                             application_numers_left.remove(app_num)
                     elif(verification_level == 2):
-                        numbers = Utils.parse_numbers_from_string(
-                            text, self.rows_for_date, application_numers_left)
-                        if(len(numbers) > 0):
-                            if(Utils.is_array_element_in_string(text, [numbers[0]]) and numbers[0] not in text_app_nums):
-                                app_num = numbers[0]
+                        application_number, class_number = self.text_handler.parse_numbers_from_string(
+                            text)
+                        if(application_number != -1):
+                            if(Utils.is_array_element_in_string(text, [application_number])):
+                                app_num = application_number
                                 if(app_num == -1):
+                                    self.textHandler.check_similarity(
+                                        app_num, application_numers_left)
                                     continue
                                 x, y = self.get_cords_from_paragraph(elem)
                                 self.application_numbers_cords[str(app_num)] = {
@@ -165,7 +176,7 @@ class XMLHandler:
                 if(v['y'] < min_y):
                     min_y = v['y']
                     best = k
-            self.image_data[k]['used'] = 1
+            self.image_data[best]['used'] = 1
             return best
         else:
             for key, value in images_not_used.items():
@@ -177,7 +188,7 @@ class XMLHandler:
                 if(v['y'] < min_y):
                     min_y = v['y']
                     best = k
-            self.image_data[k]['used'] = 1
+            self.image_data[best]['used'] = 1
             return best
         else:
             # picture is on the right bar on the next page
@@ -190,7 +201,7 @@ class XMLHandler:
                 if(v['y'] < min_y):
                     min_y = v['y']
                     best = k
-            self.image_data[k]['used'] = 1
+            self.image_data[best]['used'] = 1
             return best
         else:
             return best

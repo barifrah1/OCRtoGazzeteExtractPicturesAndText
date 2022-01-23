@@ -2,6 +2,7 @@ from pandas.io import excel
 from Consts import PAPERS_FOLDER, PROJECT_PATH, XML_FOLDER
 from Trademark import Trademark
 import shutil
+import logging
 
 
 class ImageTrademarkXML(Trademark):
@@ -19,6 +20,7 @@ class ImageTrademarkXML(Trademark):
             shutil.copyfile(r'./'+XML_FOLDER + '/' +
                             folder_name+'/word/media/'+self.name, save_to)
             print(
-                f"tradmark {self.index} saved as image number {self.application_number}")
+                f"tradmark {self.name} saved as image number {self.application_number}")
+
         except:
             raise Exception("failed when trying to copy image")
