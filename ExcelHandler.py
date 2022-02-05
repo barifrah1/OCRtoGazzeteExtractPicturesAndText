@@ -151,8 +151,9 @@ class ExcelHandler:
                 row["Applicant"]) != 'nan' else None
             if(s == None):
                 continue
-            new_s = s.strip().lower()
-            li.append(new_s)
+            s = s.split(';')
+            new_s = [el.strip().lower() for el in s]
+            li.extend(new_s)
         return li
 
     @staticmethod
@@ -189,7 +190,7 @@ class ExcelHandler:
             return []
         for index, row in rows_for_date.iterrows():
             applicant_flag = reduce(lambda x, y: x or y, list(
-                map(lambda c: c in str(row["City of Applicant"]).lower(), applicants)))
+                map(lambda c: c in str(row["Applicant"]).lower(), applicants)))
             if(applicant_flag):
                 li.append(str(int(row["Application No."])))
         return li

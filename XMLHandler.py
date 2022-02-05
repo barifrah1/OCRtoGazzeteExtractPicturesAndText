@@ -126,7 +126,8 @@ class XMLHandler:
                 text = self.get_text_from_paragraph(elem)
                 text = Utils.clean_text(text)
                 if(self.text_handler.check_if_tag_contain_appnum_tag(text, verification_level=verification_level)):
-                    text = self.get_next_two_paragraphs(elem)
+                    text = self.get_next_two_paragraphs(
+                        elem)
                     number_of_tags_identified += 1
                     # get application number and class number from tag
                     application_number, class_number = self.text_handler.parse_numbers_from_string(
@@ -139,7 +140,7 @@ class XMLHandler:
                     applicants_in_text = TextHandler.check_if_applicant_exist_in_string(
                         text, all_applicants)
                     filter_flag = 'MULTIPLE'  # flag can have 3 values - MULTIPLE, ONE, ZERO
-                    lists_to_filter = []
+                    Filters.init_filter(application_numers_left)
                     # filter by application_number_and_class
                     if(Utils.check_if_application_and_class_is_ok(application_number, class_number, application_numers_left)):
                         filter_flag = Filters.filter_list_of_applications_number_by_app_num_and_class(
@@ -155,11 +156,11 @@ class XMLHandler:
                             self.rows_for_date, countries_in_text)
                     if(filter_flag in ["MULTIPLE", "ZERO"] and len(cities_in_text) > 0):
                         filter_flag = Filters.filter_list_of_application_numbers_by_city(
-                            self.rows_for_date, countries_in_text)
+                            self.rows_for_date, cities_in_text)
                     if(filter_flag in ["MULTIPLE", "ZERO"] and len(applicants_in_text) > 0):
                         filter_flag = Filters.filter_list_of_application_numbers_by_applicant(
                             self.rows_for_date, applicants_in_text)
-                    filtered_list_of_appplications_numbers = Filters.Filter()
+                    filtered_list_of_appplications_numbers = Filters.filter()
                     if(len(filtered_list_of_appplications_numbers) == 1):
                         application_number = filtered_list_of_appplications_numbers[0]
                     else:
@@ -206,7 +207,7 @@ class XMLHandler:
                             real_class_number = int(
                                 row_data['class_number'])
                     # if(int(application_number) in application_numers_left and (class_number == real_class_number or class_number == -1 or verification_level == 2)):
-                    if(int(application_number) in application_numers_left and application_number != -1):
+                    if(application_number != -1):
                         app_num = int(application_number)
                         x, y = self.get_cords_from_paragraph(elem)
                         self.application_numbers_cords[str(app_num)] = {
@@ -338,9 +339,10 @@ class XMLHandler:
         text = ""
         w_rs = p_tag.findall(self.ns['w']+'r')
         for w_r in w_rs:
-            w_t = w_r.find(self.ns['w']+'t')
-            text += w_r.find(self.ns['w']+'t').text + \
-                ' ' if w_t is not None else ""
+            w_ts = w_r.findall(self.ns['w']+'t')
+            for w_t in w_ts:
+                text += w_t.text + \
+                    ' ' if w_t is not None else ""
         return text
 
     def get_next_two_paragraphs(self, elem):
@@ -358,10 +360,16 @@ class XMLHandler:
                 if(elem != elem2 and elem2.tag == self.ns["w"]+'p'):
                     i += 1
                     text2 = self.get_text_from_paragraph(elem2)
-                    text += " " + Utils.clean_text(text2)
+                    text2 = Utils.clean_text(text2)
+                    if(self.text_handler.check_if_tag_contain_appnum_tag(text2) is False):
+                        text += " " + Utils.clean_text(text2)
+                    else:
+                        text = Utils.clean_text(text)
+                        return text
 
-            if(i > 3):
-                return None
+            if(i > 2):
+                text = Utils.clean_text(text)
+                return text
 
     def get_application_date(self, elem):
         flag = False

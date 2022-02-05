@@ -39,7 +39,7 @@ class TextHandler:
                 return True
             else:
                 class_alternatives = self.get_all_misspellings_for_word(
-                    'class')
+                    'class', edit_distance=2)
                 in_respect_of_alternatives = self.get_all_misspellings_for_word(
                     'in respect of')
                 for word in class_alternatives:
@@ -64,7 +64,7 @@ class TextHandler:
             if(TextHandler.check_if_word_includes_digit(t) and (application_number == -1 or class_number == -1)):
                 if(i > 0 and (tokens[i-1].lower() in self.no_alternatives)):
                     application_number = tokens[i]
-                elif(i > 0 and (tokens[i-1].lower() in self.class_alternatives or tokens[i-1].lower() in self.get_all_misspellings_for_word('class'))):
+                elif(i > 0 and (tokens[i-1].lower() in self.class_alternatives or tokens[i-1].lower() in self.get_all_misspellings_for_word('class', edit_distance=2))):
                     class_number = tokens[i]
         return application_number, class_number
 
@@ -85,7 +85,7 @@ class TextHandler:
         for c in list_i:
             ratio = fuzz.partial_ratio(
                 c, text)
-            if(ratio > 70 and c not in found):
+            if(ratio > 75 and c not in found):
                 found.append(c)
         return found
 

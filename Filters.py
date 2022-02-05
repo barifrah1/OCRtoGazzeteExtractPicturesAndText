@@ -7,7 +7,14 @@ class Filters():
     filterd_list = []
 
     @staticmethod
-    def Filter():
+    def init_filter(application_numbers_left):
+        application_numbers_left_str = list(map(
+            lambda x: str(x), application_numbers_left))
+        Filters.list_to_filter = [application_numbers_left_str]
+        Filters.filtered_list = []
+
+    @staticmethod
+    def filter():
         copy_of_list_to_filter = Filters.list_to_filter.copy()
         Filters.filterd_list = Filters.intersection_of_lists(
             copy_of_list_to_filter)
@@ -31,13 +38,12 @@ class Filters():
         if(application_number != -1):
             row_data = ExcelHandler.get_rowdata_by_application_number(
                 rows_for_date, str(application_number))
-            if(row_data['class_number'] == str(class_number)):
-                Filters.list_to_filter.append([application_number])
-                return 'ONE'
-
+            Filters.list_to_filter.append([str(application_number)])
+            if(len(Filters.intersection_of_lists(Filters.list_to_filter)) == 1):
+                return 'MULTIPLE'
             else:
-                Filters.list_to_filter.append([application_number])
-                return 'ONE'
+                if(len(Filters.intersection_of_lists(Filters.list_to_filter)) == 0):
+                    return 'ZERO'
         else:
             return 'ZERO'
 
@@ -46,7 +52,7 @@ class Filters():
         filter_flag = 'MULTIPLE'
         candidates_by_date = ExcelHandler.get_application_numbers_by_application_date(
             rows_for_date, application_date)
-        if(len(candidates_by_date) == 1):
+        if(len(candidates_by_date) == 1 and len(Filters.list_to_filter) >= 2):
             filter_flag = "ONE"
             Filters.list_to_filter.append(candidates_by_date)
         elif(len(candidates_by_date) == 0):
@@ -60,7 +66,7 @@ class Filters():
     def filter_list_of_application_numbers_by_class_number(rows_for_date, class_number):
         candidates_by_class = ExcelHandler.get_application_numbers_by_class(
             rows_for_date, class_number)
-        if(len(candidates_by_class) == 1):
+        if(len(candidates_by_class) == 1 and len(Filters.list_to_filter) >= 2):
             filter_flag = "ONE"
             Filters.list_to_filter.append(candidates_by_class)
         elif(len(candidates_by_class) == 0):
@@ -74,7 +80,7 @@ class Filters():
     def filter_list_of_application_numbers_by_country(rows_for_date, countries_in_text):
         candidates_by_country = ExcelHandler.get_application_number_by_country(
             rows_for_date, countries_in_text)
-        if(len(candidates_by_country) == 1):
+        if(len(candidates_by_country) == 1 and len(Filters.list_to_filter) >= 2):
             filter_flag = "ONE"
             Filters.list_to_filter.append(candidates_by_country)
         elif(len(candidates_by_country) == 0):
@@ -88,7 +94,7 @@ class Filters():
     def filter_list_of_application_numbers_by_city(rows_for_date, cities_in_text):
         candidates_by_city = ExcelHandler.get_application_number_by_city(
             rows_for_date, cities_in_text)
-        if(len(candidates_by_city) == 1):
+        if(len(candidates_by_city) == 1 and len(Filters.list_to_filter) >= 2):
             filter_flag = "ONE"
             Filters.list_to_filter.append(candidates_by_city)
         elif(len(candidates_by_city) == 0):
@@ -100,9 +106,9 @@ class Filters():
 
     @staticmethod
     def filter_list_of_application_numbers_by_applicant(rows_for_date, applicants_in_text):
-        candidates_by_applicant = ExcelHandler.get_application_number_by_city(
+        candidates_by_applicant = ExcelHandler.get_application_number_by_applicant(
             rows_for_date, applicants_in_text)
-        if(len(candidates_by_applicant) == 1):
+        if(len(candidates_by_applicant) == 1 and len(Filters.list_to_filter) >= 2):
             filter_flag = "ONE"
             Filters.list_to_filter.append(candidates_by_applicant)
         elif(len(candidates_by_applicant) == 0):

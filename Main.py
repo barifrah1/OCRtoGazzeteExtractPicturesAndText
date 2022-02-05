@@ -17,8 +17,10 @@ if __name__ == '__main__':
             try:
                 paper = Paper(file, excel)
                 paper.extract(verification_level=1)
+                paper.extract(verification_level=1)
+                paper.extract(verification_level=1)
                 # paper.extract(verification_level=2)
-                # calculate accuracy
+                # calculate accuWr5acy
                 result = paper.status_handler.read_status_file()
                 accuracy_calculator = AccuracyCalculator(
                     file.split('.')[0], result)
