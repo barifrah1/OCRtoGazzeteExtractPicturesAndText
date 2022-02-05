@@ -1,3 +1,5 @@
+from difflib import SequenceMatcher
+from functools import reduce
 from Consts import EXCEL_FILE, SHEET_NAME
 import pandas as pd
 import Utils
@@ -75,3 +77,119 @@ class ExcelHandler:
             if(type == 'Text'):
                 app_nums.append(int((row['Application No.'])))
         return app_nums
+
+    @staticmethod
+    def get_rowdata_by_application_number(rows_for_date, num):
+        di = None
+        for index, row in rows_for_date.iterrows():
+            if(str(int(row["Application No."])) == num):
+                di = {'application_number': str(int(row["Application No."])),
+                      'class_number': str(int(row["Class No."])),
+                      'initial_no': row["Initial No."],
+                      'applicant': row["Applicant"],
+                      'local_agent': row["Local Agent"],
+                      'date_applicated': row["Date of Application"],
+                      'sign': row["Sign"]
+                      }
+        return di
+
+    @ staticmethod
+    def get_application_numbers_by_class(rows_for_date, class_number):
+        li = []
+        for index, row in rows_for_date.iterrows():
+            if(str(int(row["Class No."])) == class_number):
+                li.append(str(int(row["Application No."])))
+        return li
+
+    @ staticmethod
+    def get_application_numbers_by_application_date(rows_for_date, application_date):
+        li = []
+        for index, row in rows_for_date.iterrows():
+            application_date_from_excel = Utils.get_date_from_text(
+                str(row["Date of Application"]))
+            if(application_date_from_excel[0] == application_date[0] and application_date_from_excel[1] == application_date[1]):
+                li.append(str(int(row["Application No."])))
+        return li
+
+    @staticmethod
+    def get_countries_from_data_frame(rows_for_date):
+        li = []
+        for index, row in rows_for_date.iterrows():
+            s = str(row["Country of Applicant"])
+            # city = str(row["City of Applicant"]).lower().strip() if str(
+            #     row["City of Applicant"]) != 'nan' else ''
+            s = s.split(',')
+            new_s = [el.strip().lower() for el in s]
+            new_s.remove('') if '' in new_s else None
+            for i, val in enumerate(new_s):
+                if(val == 'local'):
+                    new_s[i] = 'palestine'
+            li.append(new_s)
+        return li
+
+    @staticmethod
+    def get_cities_from_data_frame(rows_for_date):
+        li = []
+        for index, row in rows_for_date.iterrows():
+            s = str(row["City of Applicant"]) if str(
+                row["City of Applicant"]) != 'nan' else None
+            if(s == None):
+                continue
+            # city = str(row["City of Applicant"]).lower().strip() if str(
+            #     row["City of Applicant"]) != 'nan' else ''
+            s = s.split(',')
+            new_s = [el.strip().lower() for el in s]
+            new_s.remove('') if '' in new_s else None
+            li.append(new_s)
+        return li
+
+    @staticmethod
+    def get_applicants_from_data_frame(rows_for_date):
+        li = []
+        for index, row in rows_for_date.iterrows():
+            s = str(row["Applicant"]) if str(
+                row["Applicant"]) != 'nan' else None
+            if(s == None):
+                continue
+            new_s = s.strip().lower()
+            li.append(new_s)
+        return li
+
+    @staticmethod
+    def get_application_number_by_country(rows_for_date, countries):
+        li = []
+        if(len(countries) == 0):
+            return []
+        for index, row in rows_for_date.iterrows():
+            row_countries = str(row["Country of Applicant"]).lower().replace(
+                'local', 'palestine')
+            country_flag = False
+            country_flag = reduce(lambda x, y: x or y, list(
+                map(lambda c: c in row_countries, countries)))
+            if(country_flag):
+                li.append(str(int(row["Application No."])))
+        return li
+
+    @staticmethod
+    def get_application_number_by_city(rows_for_date, cities):
+        li = []
+        if(cities is None):
+            return []
+        for index, row in rows_for_date.iterrows():
+            city_flag = reduce(lambda x, y: x or y, list(
+                map(lambda c: c in str(row["City of Applicant"]).lower(), cities)))
+            if(city_flag):
+                li.append(str(int(row["Application No."])))
+        return li
+
+    @staticmethod
+    def get_application_number_by_applicant(rows_for_date, applicants):
+        li = []
+        if(applicants is None):
+            return []
+        for index, row in rows_for_date.iterrows():
+            applicant_flag = reduce(lambda x, y: x or y, list(
+                map(lambda c: c in str(row["City of Applicant"]).lower(), applicants)))
+            if(applicant_flag):
+                li.append(str(int(row["Application No."])))
+        return li

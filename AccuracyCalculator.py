@@ -34,6 +34,7 @@ class AccuracyCalculator:
     def calculate_accuracy(self, result):
         hits = 0
         misses = 0
+        misses_text = ""
         try:
             for app_num, image_name in self.real_app_num_to_image_name_dict.items():
                 if(app_num not in result.keys()):
@@ -43,20 +44,21 @@ class AccuracyCalculator:
                     hits += 1
                 else:
                     misses += 1
+                    misses_text += app_num+": guess:"+result_image_num+" real:"+image_name+','
         except Exception as e:
             print(e, app_num)
             raise e
         try:
             accuracy = hits/len(self.real_app_num_to_image_name_dict.keys())
             print(
-                f"accuracy for {self.paper_name} is: {accuracy}, num of hits: {hits}/{len(self.real_app_num_to_image_name_dict.keys())} , misses: {misses}")
+                f"accuracy for {self.paper_name} is: {accuracy}, num of hits: {hits}/{len(self.real_app_num_to_image_name_dict.keys())} , misses: {misses}, identified:{hits+misses}, misses_text:{misses_text}")
             AccuracyCalculator.write_to_accuracy_file(
-                f"accuracy for {self.paper_name} is: {accuracy}, num of hits: {hits}/{len(self.real_app_num_to_image_name_dict.keys())}, misses: {misses}")
+                f"accuracy for {self.paper_name} is: {accuracy}, num of hits: {hits}/{len(self.real_app_num_to_image_name_dict.keys())}, misses: {misses}, identified:{hits+misses}, misses_text:{misses_text}")
             return accuracy
         except ZeroDivisionError:
             print('divide by zero is not allowed')
 
-    @staticmethod
+    @ staticmethod
     def write_to_accuracy_file(line_to_write):
         with open('./accuracy/log.txt', 'a') as f:
             f.write(line_to_write)

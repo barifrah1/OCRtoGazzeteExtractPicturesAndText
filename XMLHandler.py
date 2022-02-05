@@ -1,18 +1,25 @@
-from typing import ByteString
+import logging
+from tabnanny import check
+from typing import ByteString, Text
 import zipfile
 import os
 from lxml import etree
 from Consts import XML_FOLDER, PAPERS_FOLDER
 import pandas as pd
+from ExcelHandler import ExcelHandler
 import Utils
 import docx
 from shutil import copy, rmtree
 from TextHandler import TextHandler
+import sys
+from Filters import Filters
 
 
 class XMLHandler:
     def __init__(self, paper_date, rows_for_date):
         self.paper_date = paper_date
+        logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
+                            level=logging.INFO, filename=paper_date+'.log')
         self.text_handler = TextHandler()
         # if folder with images already exist dont extract files
         with zipfile.ZipFile('./'+PAPERS_FOLDER+'/'+paper_date+'.docx', "r") as zip_ref:
@@ -94,53 +101,146 @@ class XMLHandler:
                             cords['name'] = self.rId_dict[rId]
                             self.image_data[rId] = cords
                         except Exception as e:
-                            print(e)
+                            print(e, sys.exc_info()
+                                  [-1].tb_lineno, type(e).__name__)
                             raise(e)
                 self.images_elements.append(elem)
             elif(elem.tag == self.ns["w"]+'footnotePr'):
                 self.page_numbers.append(self.page_numbers[-1]+1)
         print(self.image_data)
 
-    def find_application_numbers_tags_of_images(self, application_numbers_to_search, verification_level=1):
+    def find_application_numbers_tags_of_images(self, application_numbers_to_search, all_countries, all_cities, all_applicants, verification_level=1):
         application_numers_left = application_numbers_to_search.copy()
         self.application_numbers_cords = {}
         pages = [0]
+        number_of_tags_identified = 0
         for elem in self.tree.iter():
+            row_data = None
+            application_number = -1
+            class_number = -1
+            real_class_number = -1
             if(len(application_numers_left) == 0):
                 break
+            # if tag is paragraph tag
             if(elem.tag == self.ns['w']+'p'):
                 text = self.get_text_from_paragraph(elem)
-                if(self.text_handler.check_if_string_contain_appnum_tag(text)):
-                    result = Utils.is_array_element_in_string(
-                        text, application_numers_left)
-                    if(result != -1):
-                        app_num = result
+                text = Utils.clean_text(text)
+                if(self.text_handler.check_if_tag_contain_appnum_tag(text, verification_level=verification_level)):
+                    text = self.get_next_two_paragraphs(elem)
+                    number_of_tags_identified += 1
+                    # get application number and class number from tag
+                    application_number, class_number = self.text_handler.parse_numbers_from_string(
+                        text)
+                    application_date = self.get_application_date(elem)
+                    countries_in_text = TextHandler.check_if_country_or_cities_exist_in_string(
+                        text, all_countries)
+                    cities_in_text = TextHandler.check_if_country_or_cities_exist_in_string(
+                        text, all_cities)
+                    applicants_in_text = TextHandler.check_if_applicant_exist_in_string(
+                        text, all_applicants)
+                    filter_flag = 'MULTIPLE'  # flag can have 3 values - MULTIPLE, ONE, ZERO
+                    lists_to_filter = []
+                    # filter by application_number_and_class
+                    if(Utils.check_if_application_and_class_is_ok(application_number, class_number, application_numers_left)):
+                        filter_flag = Filters.filter_list_of_applications_number_by_app_num_and_class(
+                            self.rows_for_date, application_number, class_number)
+                    if(filter_flag in ["MULTIPLE", "ZERO"] and application_date != None):
+                        filter_flag = Filters.filter_list_of_application_numbers_by_application_date(
+                            self.rows_for_date, application_date)
+                    if(filter_flag in ["MULTIPLE", "ZERO"] and str(class_number).isdigit() and int(class_number) != -1):
+                        filter_flag = Filters.filter_list_of_application_numbers_by_class_number(
+                            self.rows_for_date, class_number)
+                    if(filter_flag in ["MULTIPLE", "ZERO"] and len(countries_in_text) > 0):
+                        filter_flag = Filters.filter_list_of_application_numbers_by_country(
+                            self.rows_for_date, countries_in_text)
+                    if(filter_flag in ["MULTIPLE", "ZERO"] and len(cities_in_text) > 0):
+                        filter_flag = Filters.filter_list_of_application_numbers_by_city(
+                            self.rows_for_date, countries_in_text)
+                    if(filter_flag in ["MULTIPLE", "ZERO"] and len(applicants_in_text) > 0):
+                        filter_flag = Filters.filter_list_of_application_numbers_by_applicant(
+                            self.rows_for_date, applicants_in_text)
+                    filtered_list_of_appplications_numbers = Filters.Filter()
+                    if(len(filtered_list_of_appplications_numbers) == 1):
+                        application_number = filtered_list_of_appplications_numbers[0]
+                    else:
+                        application_number = -1
+                    # elif(application_date == None):
+                    #     # if(verification_level == 2 and Utils.get_num_of_digits_in_string(application_number)/len(application_number) > 0.66):
+                    #     logging.error(
+                    #         f"error parsing to integer, {application_number},{class_number}, {real_class_number}")
+
+                    #     print("error parsing to integer", application_number,
+                    #           class_number, real_class_number)
+                    #     continue
+                    # # application number from word document exists also in rows_for_date
+                    # if(row_data != None):
+                    #     real_class_number = int(row_data['class_number'])
+                    #     # real_application_date = Utils.get_date_from_text(
+                    #     #     row_data['date_applicated'])
+                    # elif(application_date != None):
+                    #     application_numbers_for_date = ExcelHandler.get_application_numbers_by_application_date(
+                    #         self.rows_for_date, application_date)
+                    #     if(len(application_numbers_for_date) == 1):
+                    #         application_number = application_numbers_for_date[0]
+                    #     elif(len(application_numbers_for_date) > 1):
+                    #         application_numbers_for_class = ExcelHandler.get_application_numbers_by_class(
+                    #             self.rows_for_date, str(class_number))
+                    #         application_numers_left_as_string = list(
+                    #             map(lambda x: str(x), application_numers_left))
+                    #         intersection = list(set(application_numbers_for_class)
+                    #                             & set(application_numbers_for_date) & set(application_numers_left_as_string))
+                    #         if(len(intersection) == 1):
+                    #             application_number = intersection[0]
+                    #         else:
+                    #             logging.info(
+                    #                 f"{number_of_tags_identified}: {application_number}, {class_number}, {real_class_number}, {application_date}")
+                    #             continue
+                    #     else:
+                    #         logging.info(
+                    #             f"{number_of_tags_identified}: {application_number}, {class_number}, {real_class_number}, {application_date}")
+                    #         continue
+                    if(application_number != -1):
+                        row_data = ExcelHandler.get_rowdata_by_application_number(
+                            self.rows_for_date, str(application_number))
+                        if(row_data != None):
+                            real_class_number = int(
+                                row_data['class_number'])
+                    # if(int(application_number) in application_numers_left and (class_number == real_class_number or class_number == -1 or verification_level == 2)):
+                    if(int(application_number) in application_numers_left and application_number != -1):
+                        app_num = int(application_number)
                         x, y = self.get_cords_from_paragraph(elem)
                         self.application_numbers_cords[str(app_num)] = {
                             'x': x, 'y': y, 'page': pages[-1], }
                         if(app_num in application_numers_left):
                             application_numers_left.remove(app_num)
-                    elif(verification_level == 2):
-                        application_number, class_number = self.text_handler.parse_numbers_from_string(
-                            text)
-                        if(application_number != -1):
-                            if(Utils.is_array_element_in_string(text, [application_number])):
-                                app_num = application_number
-                                if(app_num == -1):
-                                    self.textHandler.check_similarity(
-                                        app_num, application_numers_left)
-                                    continue
-                                x, y = self.get_cords_from_paragraph(elem)
-                                self.application_numbers_cords[str(app_num)] = {
-                                    'x': x, 'y': y, 'page': pages[-1]}
-                                if(app_num in application_numers_left):
-                                    application_numers_left.remove(app_num)
+                    else:
+                        logging.info(
+                            f" failed at tag last condition: {number_of_tags_identified}: {application_number}, {class_number}, {real_class_number}, {application_date}")
+                    logging.info(
+                        f"{number_of_tags_identified}: {application_number}, {class_number}, {countries_in_text},{cities_in_text}, {application_date}")
+                    # elif(verification_level == 2):
+                    #     if(application_number != -1)
+                    #         if(Utils.is_array_element_in_string(text, [application_number])):
+                    #             app_num = application_number
+                    #             if(app_num == -1):
+                    #                 self.textHandler.check_similarity(
+                    #                     app_num, application_numers_left)
+                    #                 continue
+                    #             x, y = self.get_cords_from_paragraph(elem)
+                    #             self.application_numbers_cords[str(app_num)] = {
+                    #                 'x': x, 'y': y, 'page': pages[-1]}
+                    #             if(app_num in application_numers_left):
+                    #                 application_numers_left.remove(app_num)
 
+            # find page end tag
             elif(elem.tag == self.ns["w"]+'footnotePr'):
                 pages.append(pages[-1]+1)
-        print(self.application_numbers_cords)
+                logging.info(f"new page {pages[-1]}")
+        # print(self.application_numbers_cords)
+        logging.info(f"tags identified: {number_of_tags_identified}")
 
     def match_between_image_and_app_num(self):
+        logging.info("matches:")
         matches = {}
         for key in self.application_numbers_cords.keys():
             tag_page = int(self.application_numbers_cords[key]['page'])
@@ -152,8 +252,13 @@ class XMLHandler:
             if(rId is not None):
                 image_name = self.rId_dict[rId]
                 matches[app_num] = image_name
+                logging.info(f"{app_num}  :  {image_name}")
             else:
                 matches[app_num] = -1
+        num_of_matches = len(dict(
+            filter(lambda elem: elem[1] != -1, matches.items())).keys())
+        logging.info(
+            f"num of tags:{len(self.application_numbers_cords.keys())} , num of images data keys: {len(self.image_data.keys())}, num of matches: {num_of_matches}")
         print(matches)
         return matches
 
@@ -219,10 +324,14 @@ class XMLHandler:
 
     # get w:p tag and extract it's cordinates using w:framePr x w:x and w:y
     def get_cords_from_paragraph(self, p_tag):
-        w_ppr = p_tag.find(self.ns['w']+'pPr')
-        w_frame_pPr = w_ppr.find(self.ns['w']+'framePr')
-        x = w_frame_pPr.attrib[self.ns['w']+'x']
-        y = w_frame_pPr.attrib[self.ns['w']+'y']
+        try:
+            w_ppr = p_tag.find(self.ns['w']+'pPr')
+            w_frame_pPr = w_ppr.find(self.ns['w']+'framePr')
+            x = w_frame_pPr.attrib[self.ns['w']+'x']
+            y = w_frame_pPr.attrib[self.ns['w']+'y']
+        except Exception as e:
+            logging.exception(e)
+            raise e
         return x, y
 
     def get_text_from_paragraph(self, p_tag):
@@ -233,6 +342,49 @@ class XMLHandler:
             text += w_r.find(self.ns['w']+'t').text + \
                 ' ' if w_t is not None else ""
         return text
+
+    def get_next_two_paragraphs(self, elem):
+        flag = False
+        text = ""
+        i = 0
+        for elem2 in self.tree.iter():
+            if(elem2 == elem):
+                flag = True
+                text = self.get_text_from_paragraph(elem2)
+
+            if(flag != True):
+                continue
+            else:
+                if(elem != elem2 and elem2.tag == self.ns["w"]+'p'):
+                    i += 1
+                    text2 = self.get_text_from_paragraph(elem2)
+                    text += " " + Utils.clean_text(text2)
+
+            if(i > 3):
+                return None
+
+    def get_application_date(self, elem):
+        flag = False
+        i = 0
+        for elem2 in self.tree.iter():
+            if(elem2 == elem):
+                flag = True
+                text = self.get_text_from_paragraph(elem2)
+                if('filed' in text):
+                    date = Utils.get_date_from_text(text)
+                    return date
+            if(flag != True):
+                continue
+            else:
+                if(elem != elem2 and elem2.tag == self.ns["w"]+'p'):
+                    i += 1
+                    text = self.get_text_from_paragraph(elem2)
+                    text = Utils.clean_text(text)
+                    if('filed' in text):
+                        date = Utils.get_date_from_text(text)
+                        return date
+            if(i > 3):
+                return None
 
     # if __name__ == '__main__':
     #     try:

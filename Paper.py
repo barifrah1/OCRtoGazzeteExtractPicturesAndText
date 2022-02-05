@@ -1,6 +1,8 @@
+import sys
 from shutil import rmtree
 from Consts import PAPERS_FOLDER, STATUS_FOLDER, PICKLES_FOLDER, XML_FOLDER
 import pickle
+from ExcelHandler import ExcelHandler
 from StatusHandler import StatusHandler
 from TextHandler import TextHandler
 from TextTrademark import TextTrademark
@@ -10,6 +12,7 @@ import Utils
 import os
 from HtmlHandler import HtmlHandler
 from XMLHandler import XMLHandler
+import logging
 FIle_NAME_INDEX = 0
 NOT_FOUND = 0
 
@@ -26,13 +29,22 @@ class Paper:
             self.number_of_rows = len(self.rows_for_date.values.tolist())
             self.excel = excel
             self.status_handler = StatusHandler(self.file_name)
-            self.xml = XMLHandler(self.file_name, self.rows_for_date)
+            logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
+                                level=logging.INFO, filename=self.file_name+'.log')
+            self.xml = XMLHandler(
+                self.file_name, self.rows_for_date)
             Utils.create_folder_if_not_exist(STATUS_FOLDER)
             # if current file havent been analyzed yet ,extract already finished on empty_mode (no 1's in already done dictionary)
             is_status_file_path_exists = os.path.exists(
                 STATUS_FOLDER+'/'+self.file_name+'.txt')
             self.already_done, self.romans_done = self.get_already_finished(
                 excel, empty_mode=not is_status_file_path_exists)
+            self.countries = ExcelHandler.get_countries_from_data_frame(
+                self.rows_for_date)
+            self.cities = ExcelHandler.get_cities_from_data_frame(
+                self.rows_for_date)
+            self.applicants = ExcelHandler.get_applicants_from_data_frame(
+                self.rows_for_date)
             # with open(self.paper_path, encoding="utf8") as fp:
             #     self.html = HtmlHandler(fp)
             self.trademarks = []
@@ -116,7 +128,8 @@ class Paper:
                             i, trademark_data, application_number_tag)
                         self.already_done[application_number] = 1
                     except Exception as e:
-                        print(e)
+                        print(sys.exc_info()[0].__name__, os.path.basename(sys.exc_info()[
+                              2].tb_frame.f_code.co_filename), sys.exc_info()[2].tb_lineno)
             return None
 
     def check_if_class_and_app_num_in_tag(self, keys_not_found_yet, application_number_tag):
@@ -179,28 +192,28 @@ class Paper:
         self.trademarks.append(trademark)
         return trademark
 
-    def extract_text_trademarks_not_found(self):
-        for j in list(self.already_done.keys()):
-            if(self.already_done[j] == NOT_FOUND):
-                try:
-                    row = self.excel.get_row_by_application_number(
-                        self.paper_date, j)
-                    type = Utils.parse_trademark_type(row)
-                    if(type == 'Text'):
-                        trademark_data = self.excel.get_trademark_data_by_application_number(
-                            self.paper_date, j)
-                        trademark = self.create_trademark(-2,
-                                                          trademark_data, None)
-                        self.already_done[int(
-                            trademark_data['application_number'])] = 1
-                except Exception as e:
-                    print(
-                        f"extract_text_trademarks_not_found: {j} failed due to: {e}")
+    # def extract_text_trademarks_not_found(self):
+    #     for j in list(self.already_done.keys()):
+    #         if(self.already_done[j] == NOT_FOUND):
+    #             try:
+    #                 row = self.excel.get_row_by_application_number(
+    #                     self.paper_date, j)
+    #                 type = Utils.parse_trademark_type(row)
+    #                 if(type == 'Text'):
+    #                     trademark_data = self.excel.get_trademark_data_by_application_number(
+    #                         self.paper_date, j)
+    #                     trademark = self.create_trademark(-2,
+    #                                                       trademark_data, None)
+    #                     self.already_done[int(
+    #                         trademark_data['application_number'])] = 1
+    #             except Exception as e:
+    #                 print(
+    #                     f"extract_text_trademarks_not_found: {j} failed due to: {e}")
 
     def extract_image_trademarks(self, verification_level=1):
         try:
             self.xml.find_application_numbers_tags_of_images(
-                self.images_app_nums_to_search, verification_level=verification_level)
+                self.images_app_nums_to_search, self.countries, self.cities, self.applicants, verification_level=verification_level)
             matches = self.xml.match_between_image_and_app_num()
             for key in matches.keys():
                 app_num = key

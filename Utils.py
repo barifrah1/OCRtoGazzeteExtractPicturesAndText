@@ -1,8 +1,10 @@
 import datetime
+from functools import reduce
 import os
 from fuzzywuzzy import fuzz, process, utils
 from Consts import PAPERS_FOLDER, XML_FOLDER, ACCURACY_FILE_NAME
 # convert integer to roman number for example : 1 to I, 2 to II
+import datefinder
 
 
 def int_to_Roman(num):
@@ -164,6 +166,65 @@ def add_curly_braces_to_string(s):
     return '{'+s+'}'
 
 
+def remove_commas_and_dots_from_string(text):
+    text2 = text.replace(',', ' ')
+    text2 = text2.replace('.', ' ')
+    return text2
+
+
+def text_to_lower(text):
+    return text.lower()
+
+
+def remove_spaces_at_start_and_end(token):
+    return token.strip()
+
+
+def clean_text(text):
+    text2 = text_to_lower(text)
+    return remove_commas_and_dots_from_string(text2)
+
+
+def get_date_from_text(paragraph):
+    matches = datefinder.find_dates(paragraph)
+    for match in matches:
+        year = match.year
+        month = match.month
+        day = match.day
+        return (day, month, year)
+    return None
+
+
+def get_num_of_digits_in_string(s):
+    mapper = list(map(lambda ch: int(ch.isdigit()), s))
+    reducer = mapper.reduce(lambda x, y: x + y)
+    return reducer
+
+
+def get_list_of_countries(s):
+    li = s.split('|')
+    list_of_countries = []
+    for val in li:
+        if(',' in val):
+            new = li.split(',')
+            new2 = []
+            for v in new:
+                new2.append(v.strip())
+            list_of_countries.apped(new2)
+        else:
+            list_of_countries.append([val.strip()])
+    return list_of_countries
+
+
+def check_if_application_and_class_is_ok(application_number, class_number, application_numbers_left):
+    flag = (str(application_number).isdigit() and application_number != -
+            1 and str(class_number).isdigit() and class_number != -1)
+    if(flag):
+        return int(application_number) in application_numbers_left
+    else:
+        return False
+
+
 def parse_numbers_from_string(s, excel_rows_for_date, keys_not_found_yet):
     numbers = []
     current = []
@@ -203,11 +264,3 @@ def parse_numbers_from_string(s, excel_rows_for_date, keys_not_found_yet):
                 if(len(current) > 0 and current[0].isdigit()):
                     current.append(t)
     return numbers
-
-
-@staticmethod
-def check_if_word_includes_digit(word):
-    for ch in word:
-        if(ch.is_digit()):
-            return True
-    return False

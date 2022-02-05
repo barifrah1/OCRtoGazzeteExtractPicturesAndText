@@ -33,5 +33,5 @@ class StatusHandler:
                     line = fa.readline()
                 fa.close()
             return self.result
-        except:
-            raise("Exception: writing to status file")
+        except Exception as e:
+            raise(e)
