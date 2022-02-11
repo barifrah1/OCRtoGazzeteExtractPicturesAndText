@@ -33,7 +33,7 @@ class TextHandler:
             map(lambda t: t in new_str, self.in_respect_of_alternatives))
         in_respect_of_check = reduce(
             lambda t1, t2: t1 or t2, in_respect_of_check_list)
-        if(no_check == True and (class_check == True or in_respect_of_check)):
+        if(no_check+class_check+in_respect_of_check >= 2):
             return True
         elif no_check == True:
             if(verification_level == 2):
@@ -65,7 +65,7 @@ class TextHandler:
         # save index of every token contain at least one digit
         for i, t in enumerate(tokens):
             if(TextHandler.check_if_word_includes_digit(t) and (application_number == -1 or class_number == -1)):
-                if(i > 0 and (tokens[i-1].lower() in self.no_alternatives)):
+                if(i > 0 and (tokens[i-1].lower() in self.no_alternatives or tokens[i-1].lower() in self.get_all_misspellings_for_word('no', edit_distance=1))):
                     application_number = tokens[i]
                 elif(i > 0 and (tokens[i-1].lower() in self.class_alternatives or tokens[i-1].lower() in self.get_all_misspellings_for_word('class', edit_distance=2))):
                     class_number = tokens[i]

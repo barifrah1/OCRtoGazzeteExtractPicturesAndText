@@ -13,7 +13,7 @@ if __name__ == '__main__':
     AccuracyCalculator.write_to_accuracy_file(
         '-------'+str(datetime.now())+'---------')
     for file in os.listdir(PAPERS_FOLDER):
-        if(Utils.is_docx_file(file) and file == '36-09-24.docx'):
+        if(Utils.is_docx_file(file)):
             try:
                 logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
                                     level=logging.INFO, filename=file.split('.')[0]+'.log')
