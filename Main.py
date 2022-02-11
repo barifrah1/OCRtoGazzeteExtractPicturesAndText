@@ -13,14 +13,17 @@ if __name__ == '__main__':
     AccuracyCalculator.write_to_accuracy_file(
         '-------'+str(datetime.now())+'---------')
     for file in os.listdir(PAPERS_FOLDER):
-        if(Utils.is_docx_file(file) and file == '36-12-10.docx'):
+        if(Utils.is_docx_file(file) and file == '36-09-24.docx'):
             try:
+                logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
+                                    level=logging.INFO, filename=file.split('.')[0]+'.log')
                 paper = Paper(file, excel)
                 paper.extract(verification_level=1)
                 paper.extract(verification_level=1)
                 paper.extract(verification_level=1)
-                # paper.extract(verification_level=2)
-                # calculate accuWr5acy
+                paper.extract(verification_level=2)
+                paper.extract(verification_level=2)
+                # calculate accuracy
                 result = paper.status_handler.read_status_file()
                 accuracy_calculator = AccuracyCalculator(
                     file.split('.')[0], result)

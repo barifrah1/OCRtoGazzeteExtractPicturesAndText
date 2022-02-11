@@ -49,11 +49,14 @@ class AccuracyCalculator:
             print(e, app_num)
             raise e
         try:
-            accuracy = hits/len(self.real_app_num_to_image_name_dict.keys())
+            if(hits+misses == 0):
+                accuracy = 0
+            else:
+                accuracy = hits/(hits+misses)
             print(
-                f"accuracy for {self.paper_name} is: {accuracy}, num of hits: {hits}/{len(self.real_app_num_to_image_name_dict.keys())} , misses: {misses}, identified:{hits+misses}, misses_text:{misses_text}")
+                f"accuracy for {self.paper_name} is: {round(accuracy,2)}, num of hits: {hits}/{hits+misses}, misses: {misses} ,identified: {(hits+misses)}/{len(self.real_app_num_to_image_name_dict.keys())} = {round((hits+misses)/len(self.real_app_num_to_image_name_dict.keys()),2)},  misses_text:{misses_text}")
             AccuracyCalculator.write_to_accuracy_file(
-                f"accuracy for {self.paper_name} is: {accuracy}, num of hits: {hits}/{len(self.real_app_num_to_image_name_dict.keys())}, misses: {misses}, identified:{hits+misses}, misses_text:{misses_text}")
+                f"accuracy for {self.paper_name} is: {round(accuracy,2)}, num of hits: {hits}/{hits+misses}, misses: {misses} ,identified: {(hits+misses)}/{len(self.real_app_num_to_image_name_dict.keys())} = {round((hits+misses)/len(self.real_app_num_to_image_name_dict.keys()),2)},  misses_text:{misses_text}")
             return accuracy
         except ZeroDivisionError:
             print('divide by zero is not allowed')

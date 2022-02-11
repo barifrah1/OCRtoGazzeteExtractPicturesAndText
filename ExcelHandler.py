@@ -157,6 +157,17 @@ class ExcelHandler:
         return li
 
     @staticmethod
+    def get_applications_numbers_from_data_frame(rows_for_date):
+        li = []
+        for index, row in rows_for_date.iterrows():
+            s = str(int(row["Application No."])) if str(
+                row["Application No."]) != 'nan' else None
+            if(s == None):
+                continue
+            li.append(s)
+        return li
+
+    @staticmethod
     def get_application_number_by_country(rows_for_date, countries):
         li = []
         if(len(countries) == 0):

@@ -1,5 +1,7 @@
+from operator import index
 from ExcelHandler import ExcelHandler
 from shutil import copy
+import Utils
 
 
 class Filters():
@@ -18,6 +20,17 @@ class Filters():
         copy_of_list_to_filter = Filters.list_to_filter.copy()
         Filters.filterd_list = Filters.intersection_of_lists(
             copy_of_list_to_filter)
+
+        # if(len(Filters.filterd_list) == 0):
+        #     flag = False
+        #     copy_of_list_to_filter = []
+        #     for li in Filters.list_to_filter:
+        #         if(len(li)) > 1 or flag:
+        #             copy_of_list_to_filter.append(li)
+        #         else:
+        #             flag = True
+        #     Filters.filterd_list = Filters.intersection_of_lists(
+        #         copy_of_list_to_filter)
         return Filters.filterd_list
 
     @staticmethod
@@ -40,10 +53,9 @@ class Filters():
                 rows_for_date, str(application_number))
             Filters.list_to_filter.append([str(application_number)])
             if(len(Filters.intersection_of_lists(Filters.list_to_filter)) == 1):
-                return 'MULTIPLE'
+                return 'ONE'
             else:
-                if(len(Filters.intersection_of_lists(Filters.list_to_filter)) == 0):
-                    return 'ZERO'
+                return 'ZERO'
         else:
             return 'ZERO'
 
@@ -117,3 +129,34 @@ class Filters():
             filter_flag = "MULTIPLE"
             Filters.list_to_filter.append(candidates_by_applicant)
         return filter_flag
+
+    @staticmethod
+    def filter_list_of_application_numbers_by_pattern(rows_for_date, application_number):
+        filter_flag = 'MULTIPLE'
+        pattern = Utils.build_pattern(application_number)
+        numbers = ExcelHandler.get_applications_numbers_from_data_frame(
+            rows_for_date)
+        candidates_by_pattern = []
+        for n in numbers:
+            flag = True
+            if(len(pattern) != len(n)):
+                continue
+            # check if match for pattern
+            for index, ch in enumerate(n):
+                if((ch == pattern[index] or pattern[index] == 'X') is False):
+                    flag = False
+                    break
+            if(flag):
+                candidates_by_pattern.append(n)
+        if(len(candidates_by_pattern) == 1 and len(Filters.list_to_filter) >= 2):
+            filter_flag = "ONE"
+            Filters.list_to_filter.append(candidates_by_pattern)
+            return filter_flag
+
+        elif(len(candidates_by_pattern) == 0):
+            filter_flag = "ZERO"
+            return filter_flag
+        else:
+            filter_flag = "MULTIPLE"
+            Filters.list_to_filter.append(candidates_by_pattern)
+            return filter_flag

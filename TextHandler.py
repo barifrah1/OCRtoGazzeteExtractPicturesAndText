@@ -1,3 +1,4 @@
+from rdflib import logging
 from Consts import STATUS_FOLDER
 import Utils
 from spellchecker import SpellChecker
@@ -54,6 +55,8 @@ class TextHandler:
     def parse_numbers_from_string(self, s):
         application_number = -1
         class_number = -1
+        if(s == None):
+            return -1, -1
         tokens = s.split(' ')
         for i, t in enumerate(tokens):
             tokens[i] = Utils.remove_spaces_at_start_and_end(tokens[i])
@@ -71,11 +74,15 @@ class TextHandler:
     @staticmethod
     def check_if_country_or_cities_exist_in_string(text, list_of_lists):
         found = []
-        for list_elem in list_of_lists:
-            list_i = list_elem
-            for c in list_i:
-                if(c in text and c not in found):
-                    found.append(c)
+        try:
+            for list_elem in list_of_lists:
+                list_i = list_elem
+                for c in list_i:
+                    if(c in text and c not in found):
+                        found.append(c)
+        except Exception as e:
+            logging.exception(e)
+            return []
         return found
 
     @staticmethod

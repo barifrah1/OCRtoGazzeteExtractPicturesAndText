@@ -1,6 +1,8 @@
 import datetime
 from functools import reduce
 import os
+from re import X
+from textwrap import indent
 from fuzzywuzzy import fuzz, process, utils
 from Consts import PAPERS_FOLDER, XML_FOLDER, ACCURACY_FILE_NAME
 # convert integer to roman number for example : 1 to I, 2 to II
@@ -52,9 +54,9 @@ def convert_file_date(file_date):
     formatted = datetime.datetime.strptime(
         '19'+file_date, '%Y-%m-%d').strftime('%d.%m.%y')
     result = formatted.split('.')
-    if(int(result[DAY]) < 9):  # day
+    if(int(result[DAY]) <= 9):  # day
         result[DAY] = result[DAY][1]  # remove zero
-    if(int(result[MONTH]) < 9):
+    if(int(result[MONTH]) <= 9):
         result[MONTH] = result[MONTH][1]  # remove zero
     return result[DAY]+'.'+result[MONTH]+'.'+'19'+result[YEAR]
 
@@ -223,6 +225,17 @@ def check_if_application_and_class_is_ok(application_number, class_number, appli
         return int(application_number) in application_numbers_left
     else:
         return False
+
+
+def build_pattern(application_number):
+    copy = str(application_number)
+    text = ""
+    for index, ch in enumerate(copy):
+        if(ch.isdigit() is False):
+            text += 'X'
+        else:
+            text += ch
+    return text
 
 
 def parse_numbers_from_string(s, excel_rows_for_date, keys_not_found_yet):

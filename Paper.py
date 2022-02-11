@@ -37,6 +37,9 @@ class Paper:
             # if current file havent been analyzed yet ,extract already finished on empty_mode (no 1's in already done dictionary)
             is_status_file_path_exists = os.path.exists(
                 STATUS_FOLDER+'/'+self.file_name+'.txt')
+            if(is_status_file_path_exists is False):
+                with open('./'+STATUS_FOLDER+'/'+self.file_name+'.txt', 'a') as fa:
+                    fa.close()
             self.already_done, self.romans_done = self.get_already_finished(
                 excel, empty_mode=not is_status_file_path_exists)
             self.countries = ExcelHandler.get_countries_from_data_frame(

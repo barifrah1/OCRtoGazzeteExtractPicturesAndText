@@ -91,6 +91,14 @@ class XMLHandler:
                             ppr_element = p_element.find(self.ns['w']+'pPr')
                             wframe_element = ppr_element.find(
                                 self.ns['w']+'framePr')
+                            end_of_page_flag = self.check_if_p_tag_has_page_bottom_tag(
+                                p_element)
+                            if(end_of_page_flag):
+                                cords['page'] = self.page_numbers[-1]-1
+                                cords['x'] = previous['x']
+                                cords['y'] = 800000
+                                self.image_data[rId] = cords
+                                break
                             if(wframe_element is None):
                                 break
                             cords['page'] = self.page_numbers[-1]
@@ -100,6 +108,7 @@ class XMLHandler:
                                 wframe_element.attrib[self.ns['w']+'y'])
                             cords['name'] = self.rId_dict[rId]
                             self.image_data[rId] = cords
+                            previous = cords
                         except Exception as e:
                             print(e, sys.exc_info()
                                   [-1].tb_lineno, type(e).__name__)
@@ -125,6 +134,8 @@ class XMLHandler:
             if(elem.tag == self.ns['w']+'p'):
                 text = self.get_text_from_paragraph(elem)
                 text = Utils.clean_text(text)
+                if(text is None):
+                    continue
                 if(self.text_handler.check_if_tag_contain_appnum_tag(text, verification_level=verification_level)):
                     text = self.get_next_two_paragraphs(
                         elem)
@@ -151,15 +162,18 @@ class XMLHandler:
                     if(filter_flag in ["MULTIPLE", "ZERO"] and str(class_number).isdigit() and int(class_number) != -1):
                         filter_flag = Filters.filter_list_of_application_numbers_by_class_number(
                             self.rows_for_date, class_number)
+                    if(filter_flag in ["MULTIPLE", "ZERO"] and len(applicants_in_text) > 0):
+                        filter_flag = Filters.filter_list_of_application_numbers_by_applicant(
+                            self.rows_for_date, applicants_in_text)
                     if(filter_flag in ["MULTIPLE", "ZERO"] and len(countries_in_text) > 0):
                         filter_flag = Filters.filter_list_of_application_numbers_by_country(
                             self.rows_for_date, countries_in_text)
                     if(filter_flag in ["MULTIPLE", "ZERO"] and len(cities_in_text) > 0):
                         filter_flag = Filters.filter_list_of_application_numbers_by_city(
                             self.rows_for_date, cities_in_text)
-                    if(filter_flag in ["MULTIPLE", "ZERO"] and len(applicants_in_text) > 0):
-                        filter_flag = Filters.filter_list_of_application_numbers_by_applicant(
-                            self.rows_for_date, applicants_in_text)
+                    if(filter_flag in ["MULTIPLE", "ZERO"] and str(application_number).isdigit() is False and application_number != -1 and len(Filters.intersection_of_lists(Filters.list_to_filter)) != 1 and verification_level == 2):
+                        filter_flag = Filters.filter_list_of_application_numbers_by_pattern(
+                            self.rows_for_date, application_number)
                     filtered_list_of_appplications_numbers = Filters.filter()
                     if(len(filtered_list_of_appplications_numbers) == 1):
                         application_number = filtered_list_of_appplications_numbers[0]
@@ -248,7 +262,12 @@ class XMLHandler:
             tag_x = int(self.application_numbers_cords[key]['x'])
             tag_y = int(self.application_numbers_cords[key]['y'])
             best = self.get_image_candidate_by_tag(tag_page, tag_x, tag_y)
-            matches[key] = best
+            best_from_all = self.get_image_candidate_by_tag(
+                tag_page, tag_x, tag_y, only_not_used=False)
+            if(best == best_from_all):
+                matches[key] = best
+            else:
+                matches[key] = None
         for app_num, rId in matches.items():
             if(rId is not None):
                 image_name = self.rId_dict[rId]
@@ -263,14 +282,17 @@ class XMLHandler:
         print(matches)
         return matches
 
-    def get_image_candidate_by_tag(self, tag_page, tag_x, tag_y):
+    def get_image_candidate_by_tag(self, tag_page, tag_x, tag_y, only_not_used=True):
         candidates = {}
         best = None
         # calculate which images havent been used yet
         images_not_used = {}
-        for key, value in self.image_data.items():
-            if('used' not in value.keys()):
-                images_not_used[key] = value
+        if(only_not_used == True):
+            for key, value in self.image_data.items():
+                if('used' not in value.keys()):
+                    images_not_used[key] = value
+        else:
+            images_not_used = self.image_data.copy()
         # find best image according to it's position and tag position
         for key, value in images_not_used.items():
             # picture is on the left bar on the same page
@@ -323,7 +345,14 @@ class XMLHandler:
             parent = parent.getparent()
         return parent
 
+    def check_if_p_tag_has_page_bottom_tag(self, p_tag):
+        for elem in p_tag.iter():
+            if(elem.tag == self.ns["w"]+'footnotePr'):
+                return True
+        return False
+
     # get w:p tag and extract it's cordinates using w:framePr x w:x and w:y
+
     def get_cords_from_paragraph(self, p_tag):
         try:
             w_ppr = p_tag.find(self.ns['w']+'pPr')
