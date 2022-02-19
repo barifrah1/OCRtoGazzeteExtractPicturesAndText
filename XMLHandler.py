@@ -179,41 +179,7 @@ class XMLHandler:
                         application_number = filtered_list_of_appplications_numbers[0]
                     else:
                         application_number = -1
-                    # elif(application_date == None):
-                    #     # if(verification_level == 2 and Utils.get_num_of_digits_in_string(application_number)/len(application_number) > 0.66):
-                    #     logging.error(
-                    #         f"error parsing to integer, {application_number},{class_number}, {real_class_number}")
-
-                    #     print("error parsing to integer", application_number,
-                    #           class_number, real_class_number)
-                    #     continue
-                    # # application number from word document exists also in rows_for_date
-                    # if(row_data != None):
-                    #     real_class_number = int(row_data['class_number'])
-                    #     # real_application_date = Utils.get_date_from_text(
-                    #     #     row_data['date_applicated'])
-                    # elif(application_date != None):
-                    #     application_numbers_for_date = ExcelHandler.get_application_numbers_by_application_date(
-                    #         self.rows_for_date, application_date)
-                    #     if(len(application_numbers_for_date) == 1):
-                    #         application_number = application_numbers_for_date[0]
-                    #     elif(len(application_numbers_for_date) > 1):
-                    #         application_numbers_for_class = ExcelHandler.get_application_numbers_by_class(
-                    #             self.rows_for_date, str(class_number))
-                    #         application_numers_left_as_string = list(
-                    #             map(lambda x: str(x), application_numers_left))
-                    #         intersection = list(set(application_numbers_for_class)
-                    #                             & set(application_numbers_for_date) & set(application_numers_left_as_string))
-                    #         if(len(intersection) == 1):
-                    #             application_number = intersection[0]
-                    #         else:
-                    #             logging.info(
-                    #                 f"{number_of_tags_identified}: {application_number}, {class_number}, {real_class_number}, {application_date}")
-                    #             continue
-                    #     else:
-                    #         logging.info(
-                    #             f"{number_of_tags_identified}: {application_number}, {class_number}, {real_class_number}, {application_date}")
-                    #         continue
+                    # if appication number was found
                     if(application_number != -1):
                         row_data = ExcelHandler.get_rowdata_by_application_number(
                             self.rows_for_date, str(application_number))
@@ -233,20 +199,6 @@ class XMLHandler:
                             f" failed at tag last condition: {number_of_tags_identified}: {application_number}, {class_number}, {real_class_number}, {application_date}")
                     logging.info(
                         f"{number_of_tags_identified}: {application_number}, {class_number}, {countries_in_text},{cities_in_text}, {application_date}")
-                    # elif(verification_level == 2):
-                    #     if(application_number != -1)
-                    #         if(Utils.is_array_element_in_string(text, [application_number])):
-                    #             app_num = application_number
-                    #             if(app_num == -1):
-                    #                 self.textHandler.check_similarity(
-                    #                     app_num, application_numers_left)
-                    #                 continue
-                    #             x, y = self.get_cords_from_paragraph(elem)
-                    #             self.application_numbers_cords[str(app_num)] = {
-                    #                 'x': x, 'y': y, 'page': pages[-1]}
-                    #             if(app_num in application_numers_left):
-                    #                 application_numers_left.remove(app_num)
-
             # find page end tag
             elif(elem.tag == self.ns["w"]+'footnotePr'):
                 pages.append(pages[-1]+1)

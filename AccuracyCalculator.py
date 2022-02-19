@@ -4,10 +4,11 @@ import os
 
 
 class AccuracyCalculator:
-    def __init__(self, paper_name, result):
+    def __init__(self, paper_name, result, number_of_rows):
         self.paper_name = paper_name
         self.real_app_num_to_image_name_dict = None
         self.result = result
+        self.number_of_rows = number_of_rows
         self.accuracy = None
         self.read_accuracy_file()
         self.calculate_accuracy(self.result)
@@ -36,15 +37,16 @@ class AccuracyCalculator:
         misses = 0
         misses_text = ""
         try:
-            for app_num, image_name in self.real_app_num_to_image_name_dict.items():
-                if(app_num not in result.keys()):
-                    continue
-                result_image_num = result[app_num].split('.')[0]
-                if(image_name == result_image_num):
-                    hits += 1
-                else:
-                    misses += 1
-                    misses_text += app_num+": guess:"+result_image_num+" real:"+image_name+','
+            if(self.real_app_num_to_image_name_dict is not None):
+                for app_num, image_name in self.real_app_num_to_image_name_dict.items():
+                    if(app_num not in result.keys()):
+                        continue
+                    result_image_num = result[app_num].split('.')[0]
+                    if(image_name == result_image_num):
+                        hits += 1
+                    else:
+                        misses += 1
+                        misses_text += app_num+": guess:"+result_image_num+" real:"+image_name+','
         except Exception as e:
             print(e, app_num)
             raise e
@@ -53,11 +55,19 @@ class AccuracyCalculator:
                 accuracy = 0
             else:
                 accuracy = hits/(hits+misses)
-            print(
-                f"accuracy for {self.paper_name} is: {round(accuracy,2)}, num of hits: {hits}/{hits+misses}, misses: {misses} ,identified: {(hits+misses)}/{len(self.real_app_num_to_image_name_dict.keys())} = {round((hits+misses)/len(self.real_app_num_to_image_name_dict.keys()),2)},  misses_text:{misses_text}")
-            AccuracyCalculator.write_to_accuracy_file(
-                f"accuracy for {self.paper_name} is: {round(accuracy,2)}, num of hits: {hits}/{hits+misses}, misses: {misses} ,identified: {(hits+misses)}/{len(self.real_app_num_to_image_name_dict.keys())} = {round((hits+misses)/len(self.real_app_num_to_image_name_dict.keys()),2)},  misses_text:{misses_text}")
-            return accuracy
+            if(Utils.is_real_file_exist(self.paper_name)):
+                print(
+                    f"accuracy for {self.paper_name} is: {round(accuracy,2)}, num of hits: {hits}/{hits+misses}, misses: {misses} ,identified: {(hits+misses)}/{len(self.real_app_num_to_image_name_dict.keys())} = {round((hits+misses)/len(self.real_app_num_to_image_name_dict.keys()),2)},  misses_text:{misses_text}")
+                AccuracyCalculator.write_to_accuracy_file(
+                    f"accuracy for {self.paper_name} is: {round(accuracy,2)}, num of hits: {hits}/{hits+misses}, misses: {misses} ,identified: {(hits+misses)}/{len(self.real_app_num_to_image_name_dict.keys())} = {round((hits+misses)/len(self.real_app_num_to_image_name_dict.keys()),2)},  misses_text:{misses_text}")
+                return accuracy
+            else:
+                print(
+                    f"no real file for {self.paper_name}  ,identified: {len(self.result.keys())}/{self.number_of_rows} = {round(len(self.result.keys())/self.number_of_rows,2)}")
+                AccuracyCalculator.write_to_accuracy_file(
+                    f"no real file for {self.paper_name}  ,identified: {len(self.result.keys())}/{self.number_of_rows} = {round(len(self.result.keys())/self.number_of_rows,2)}")
+                return -1
+
         except ZeroDivisionError:
             print('divide by zero is not allowed')
 

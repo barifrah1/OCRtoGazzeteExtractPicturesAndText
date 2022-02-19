@@ -1,8 +1,10 @@
 EXCEL_FILE = r'OG in progress.xlsx'
+EXCEL_FILE_RESULTS = r'results.xlsx'
 SHEET_NAME = 'Sheet1'
 PAPERS_FOLDER = 'papers'
 STATUS_FOLDER = 'status'
 PICKLES_FOLDER = 'pickles'
+NOT_FOUND_FOLDER = "not_found"
 XML_FOLDER = 'xml'
 ACCURACY_FILE_NAME = 'real.txt'
 PROJECT_PATH = 'C:/Users/Bar Ifrah/Documents/second_degree/OCRtoGazzeteExtractPicturesAndText'

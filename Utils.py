@@ -1,6 +1,7 @@
 import datetime
 from functools import reduce
 import os
+import shutil
 from re import X
 from textwrap import indent
 from fuzzywuzzy import fuzz, process, utils
@@ -277,3 +278,13 @@ def parse_numbers_from_string(s, excel_rows_for_date, keys_not_found_yet):
                 if(len(current) > 0 and current[0].isdigit()):
                     current.append(t)
     return numbers
+
+
+def copytree(src, dst, symlinks=False, ignore=None):
+    for item in os.listdir(src):
+        s = os.path.join(src, item)
+        d = os.path.join(dst, item)
+        if os.path.isdir(s):
+            shutil.copytree(s, d, symlinks, ignore)
+        else:
+            shutil.copy2(s, d)

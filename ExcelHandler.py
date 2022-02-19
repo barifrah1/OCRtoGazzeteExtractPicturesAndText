@@ -1,13 +1,50 @@
 from difflib import SequenceMatcher
 from functools import reduce
-from Consts import EXCEL_FILE, SHEET_NAME
+from logging import exception
+
+from rdflib import logging
+from Consts import EXCEL_FILE, EXCEL_FILE_RESULTS, PAPERS_FOLDER, SHEET_NAME
 import pandas as pd
+import openpyxl
 import Utils
 
 
 class ExcelHandler:
     def __init__(self):
         self.excel = pd.read_excel(EXCEL_FILE, SHEET_NAME, engine='openpyxl')
+        self.excel_results = openpyxl.load_workbook(EXCEL_FILE_RESULTS)
+
+    def write_to_excel(self, result, rows_for_date, paper_date, file_name):
+        try:
+            worksheet = self.excel_results.worksheets[0]
+            num_of_rows = worksheet.max_row+1
+            PUBLICATION_DATE_INDEX = 20
+            APPLICATION_NUMBER_INDEX = 13
+            URL_INDEX = 21
+            VERIFIED = 22
+            for row_index in range(num_of_rows):  # get publication date
+                excel_date = worksheet.cell(
+                    row=row_index+1, column=PUBLICATION_DATE_INDEX).value
+                if(excel_date is not None and paper_date in excel_date):
+                    application_number = str(worksheet.cell(
+                        row=row_index+1, column=APPLICATION_NUMBER_INDEX).value)
+                    if(application_number in result.keys()):
+                        url_to_insert = './'+PAPERS_FOLDER+'/' + \
+                            file_name+'/'+application_number+'.png'
+                        worksheet.cell(row=row_index+1,
+                                       column=URL_INDEX).hyperlink = url_to_insert
+                        worksheet.cell(row=row_index+1,
+                                       column=URL_INDEX).value = url_to_insert
+                        worksheet.cell(row=row_index+1,
+                                       column=URL_INDEX).style = "Hyperlink"
+                        worksheet.cell(row=row_index+1,
+                                       column=VERIFIED).value = 1 if Utils.is_real_file_exist(file_name) else 0
+            self.excel_results.save(EXCEL_FILE_RESULTS)
+            self.excel_results.close()
+        except Exception as e:
+            logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
+                                level=logging.INFO, filename=file_name+'.log')
+            logging.exception(e)
 
     # get- date in format d.m.yyyy, returns all rows with this date in Publication dd//mm/yyyy column
     def get_rows_from_date(self, date):

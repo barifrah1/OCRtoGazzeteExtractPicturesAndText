@@ -102,3 +102,13 @@ class TextHandler:
             if(ch.isdigit()):
                 return True
         return False
+
+    @staticmethod
+    def check_is_date_filed_paragraph(text):
+        to_search = 'The date of the application'
+        ratio = fuzz.partial_ratio(
+            to_search, text)
+        if(ratio > 70):
+            return True
+        else:
+            return False

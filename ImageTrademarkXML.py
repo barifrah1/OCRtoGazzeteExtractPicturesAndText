@@ -22,5 +22,5 @@ class ImageTrademarkXML(Trademark):
             print(
                 f"tradmark {self.name} saved as image number {self.application_number}")
 
-        except:
-            raise Exception("failed when trying to copy image")
+        except Exception as e:
+            raise Exception("failed when trying to copy image", e)
