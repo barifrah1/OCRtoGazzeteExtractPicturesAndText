@@ -1,3 +1,4 @@
+FULL_RUN_MODE = False  # also print result to excel
 EXCEL_FILE = r'OG in progress.xlsx'
 EXCEL_FILE_RESULTS = r'results.xlsx'
 SHEET_NAME = 'Sheet1'

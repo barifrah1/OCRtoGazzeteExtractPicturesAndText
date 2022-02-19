@@ -15,26 +15,55 @@ class XMLHandler1920 (XMLHandler):
     def __init__(self, paper_date, rows_for_date):
         super().__init__(paper_date, rows_for_date)
 
-    def get_application_date(self, elem):
-        flag = False
-        i = 0
-        for elem2 in self.tree.iter():
-            if(elem2 == elem):
-                flag = True
-                text = self.get_text_from_paragraph(elem2)
-
-                if(TextHandler.check_is_date_filed_paragraph(text)):
-                    date = Utils.get_date_from_text(text)
-                    return date
-            if(flag != True):
-                continue
-            else:
-                if(elem != elem2 and elem2.tag == self.ns["w"]+'p'):
-                    i += 1
-                    text = self.get_text_from_paragraph(elem2)
-                    text = Utils.clean_text(text)
-                    if(TextHandler.check_is_date_filed_paragraph(text)):
-                        date = Utils.get_date_from_text(text)
-                        return date
-            if(i > 3):
-                return None
+    def get_image_candidate_by_tag(self, tag_page, tag_x, tag_y, only_not_used=True):
+        candidates = {}
+        best = None
+        # calculate which images havent been used yet
+        images_not_used = {}
+        if(only_not_used == True):
+            for key, value in self.image_data.items():
+                if('used' not in value.keys()):
+                    images_not_used[key] = value
+        else:
+            images_not_used = self.image_data.copy()
+        # find best image according to it's position and tag position
+        for key, value in images_not_used.items():
+            # picture and tag is on the same bar on the same page, picature before tag
+            if(value['page'] == tag_page and tag_y >= value['y'] and ((tag_x < 4000 and value['x'] < 4000) or (tag_x > 4000 and value['x'] > 4000))):
+                candidates[key] = self.image_data[key]
+        if(len(candidates) > 0):
+            min_y = -100000000
+            for k, v in candidates.items():
+                if(v['y'] > min_y):
+                    min_y = v['y']
+                    best = k
+            self.image_data[best]['used'] = 1
+            return best
+        else:
+            # image in the bottom left bar , tag is on the right bar at the top on the sampe page
+            for key, value in images_not_used.items():
+                if(value['page'] == tag_page and tag_y <= value['y'] and ((tag_x > 4000 and value['x'] < 4000))):
+                    candidates[key] = self.image_data[key]
+        if(len(candidates) > 0):
+            min_y = -100000000
+            for k, v in candidates.items():
+                if(v['y'] > min_y):
+                    min_y = v['y']
+                    best = k
+            self.image_data[best]['used'] = 1
+            return best
+        else:
+            # picture is page before on the left bar and the tag is on the next page in the top right bar
+            for key, value in images_not_used.items():
+                if(value['page'] == tag_page-1 and tag_y < value['y'] and ((tag_x <= 4000 and value['x'] > 4000))):
+                    candidates[key] = self.image_data[key]
+        if(len(candidates) > 0):
+            min_y = -100000000
+            for k, v in candidates.items():
+                if(v['y'] > min_y):
+                    min_y = v['y']
+                    best = k
+            self.image_data[best]['used'] = 1
+            return best
+        else:
+            return best

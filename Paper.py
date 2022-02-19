@@ -14,6 +14,7 @@ import Utils
 import os
 from HtmlHandler import HtmlHandler
 from XMLHandler import XMLHandler
+from XMLHandler1920 import XMLHandler1920
 import logging
 FIle_NAME_INDEX = 0
 NOT_FOUND = 0
@@ -33,8 +34,11 @@ class Paper:
             self.status_handler = StatusHandler(self.file_name)
             logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
                                 level=logging.INFO, filename=self.file_name+'.log')
-            self.xml = XMLHandler(
-                self.file_name, self.rows_for_date)
+            if(self.file_name == '27-12-01'):
+                self.xml = XMLHandler1920(self.file_name, self.rows_for_date)
+            else:
+                self.xml = XMLHandler(
+                    self.file_name, self.rows_for_date)
             self.has_real_file = Utils.is_real_file_exist(self.file_name)
             Utils.create_folder_if_not_exist(STATUS_FOLDER)
             # if current file havent been analyzed yet ,extract already finished on empty_mode (no 1's in already done dictionary)

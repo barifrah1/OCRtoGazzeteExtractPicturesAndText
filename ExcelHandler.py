@@ -14,7 +14,7 @@ class ExcelHandler:
         self.excel = pd.read_excel(EXCEL_FILE, SHEET_NAME, engine='openpyxl')
         self.excel_results = openpyxl.load_workbook(EXCEL_FILE_RESULTS)
 
-    def write_to_excel(self, result, rows_for_date, paper_date, file_name):
+    def write_to_excel(self, result, paper_date, file_name):
         try:
             worksheet = self.excel_results.worksheets[0]
             num_of_rows = worksheet.max_row+1
