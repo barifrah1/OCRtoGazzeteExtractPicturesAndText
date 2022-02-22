@@ -12,6 +12,7 @@ from ImageTrademark import ImageTrademark
 from ImageTrademarkXML import ImageTrademarkXML
 import Utils
 import os
+from PIL import Image
 from HtmlHandler import HtmlHandler
 from XMLHandler import XMLHandler
 from XMLHandler1920 import XMLHandler1920
@@ -34,7 +35,7 @@ class Paper:
             self.status_handler = StatusHandler(self.file_name)
             logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
                                 level=logging.INFO, filename=self.file_name+'.log')
-            if(self.file_name == '27-12-01'):
+            if(self.file_name == '27-09-01'):
                 self.xml = XMLHandler1920(self.file_name, self.rows_for_date)
             else:
                 self.xml = XMLHandler(
@@ -176,9 +177,11 @@ class Paper:
         images_matched = list(
             map(lambda trademark: trademark.name, self.trademarks))
         for image in self.xml.images_names:
+            if('real' in image):
+                continue
             if(image not in images_matched):
                 shutil.copy('./'+XML_FOLDER+'/'+self.file_name+'/word/media/' +
-                            image, './'+PAPERS_FOLDER+'/'+self.file_name+'/'+NOT_FOUND_FOLDER+'/'+image)
+                            image, './'+PAPERS_FOLDER+'/'+self.file_name+'/'+NOT_FOUND_FOLDER+'/'+image.split('.')[0]+'.png')
 
     def create_verified_file(self):
         if(self.has_real_file):
@@ -191,3 +194,11 @@ class Paper:
             './'+PAPERS_FOLDER+'/'+self.file_name+'/'+'original')
         Utils.copytree('./'+XML_FOLDER+'/'+self.file_name+'/word/media/', './' +
                        PAPERS_FOLDER+'/'+self.file_name+'/original/')
+        for image in os.listdir('./' + PAPERS_FOLDER+'/'+self.file_name+'/original/'):
+            if('jpeg' in image):
+                im = Image.open('./' + PAPERS_FOLDER+'/' +
+                                self.file_name+'/original/'+image)
+                im.save('./' + PAPERS_FOLDER+'/' +
+                        self.file_name+'/original/'+image.split('.')[0]+'.png')
+                os.remove('./' + PAPERS_FOLDER+'/' +
+                          self.file_name+'/original/'+image)
