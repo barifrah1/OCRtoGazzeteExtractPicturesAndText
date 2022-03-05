@@ -78,7 +78,7 @@ class TextHandler:
             for list_elem in list_of_lists:
                 list_i = list_elem
                 for c in list_i:
-                    if(c in text and c not in found):
+                    if(text != None and c in text and c not in found):
                         found.append(c)
         except Exception as e:
             logging.exception(e)

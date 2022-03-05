@@ -104,8 +104,11 @@ class XMLHandler:
                             cords['page'] = self.page_numbers[-1]
                             cords['x'] = int(
                                 wframe_element.attrib[self.ns['w']+'x'])
-                            cords['y'] = int(
-                                wframe_element.attrib[self.ns['w']+'y'])
+                            if(self.paper_date == '45-06-07' and cords['y'] == -1 and '{http://schemas.openxmlformats.org/wordprocessingml/2006/main}y' not in wframe_element.attrib):
+                                cords['y'] = 10000
+                            else:
+                                cords['y'] = int(
+                                    wframe_element.attrib[self.ns['w']+'y'])
                             cords['name'] = self.rId_dict[rId]
                             self.image_data[rId] = cords
                             previous = cords
@@ -124,86 +127,90 @@ class XMLHandler:
         pages = [0]
         number_of_tags_identified = 0
         for elem in self.tree.iter():
-            row_data = None
-            application_number = -1
-            class_number = -1
-            real_class_number = -1
-            if(len(application_numers_left) == 0):
-                break
-            # if tag is paragraph tag
-            if(elem.tag == self.ns['w']+'p'):
-                text = self.get_text_from_paragraph(elem)
-                text = Utils.clean_text(text)
-                if(text is None):
-                    continue
-                if(self.text_handler.check_if_tag_contain_appnum_tag(text, verification_level=verification_level)):
-                    text = self.get_next_two_paragraphs(
-                        elem)
-                    number_of_tags_identified += 1
-                    # get application number and class number from tag
-                    application_number, class_number = self.text_handler.parse_numbers_from_string(
-                        text)
-                    application_date = self.get_application_date(elem)
-                    countries_in_text = TextHandler.check_if_country_or_cities_exist_in_string(
-                        text, all_countries)
-                    cities_in_text = TextHandler.check_if_country_or_cities_exist_in_string(
-                        text, all_cities)
-                    applicants_in_text = TextHandler.check_if_applicant_exist_in_string(
-                        text, all_applicants)
-                    filter_flag = 'MULTIPLE'  # flag can have 3 values - MULTIPLE, ONE, ZERO
-                    Filters.init_filter(application_numers_left)
-                    # filter by application_number_and_class
-                    if(Utils.check_if_application_and_class_is_ok(application_number, class_number, application_numers_left)):
-                        filter_flag = Filters.filter_list_of_applications_number_by_app_num_and_class(
-                            self.rows_for_date, application_number, class_number)
-                    if(filter_flag in ["MULTIPLE", "ZERO"] and application_date != None):
-                        filter_flag = Filters.filter_list_of_application_numbers_by_application_date(
-                            self.rows_for_date, application_date)
-                    if(filter_flag in ["MULTIPLE", "ZERO"] and str(class_number).isdigit() and int(class_number) != -1):
-                        filter_flag = Filters.filter_list_of_application_numbers_by_class_number(
-                            self.rows_for_date, class_number)
-                    if(filter_flag in ["MULTIPLE", "ZERO"] and len(applicants_in_text) > 0):
-                        filter_flag = Filters.filter_list_of_application_numbers_by_applicant(
-                            self.rows_for_date, applicants_in_text)
-                    if(filter_flag in ["MULTIPLE", "ZERO"] and len(countries_in_text) > 0):
-                        filter_flag = Filters.filter_list_of_application_numbers_by_country(
-                            self.rows_for_date, countries_in_text)
-                    if(filter_flag in ["MULTIPLE", "ZERO"] and len(cities_in_text) > 0):
-                        filter_flag = Filters.filter_list_of_application_numbers_by_city(
-                            self.rows_for_date, cities_in_text)
-                    if(filter_flag in ["MULTIPLE", "ZERO"] and str(application_number).isdigit() is False and application_number != -1 and len(Filters.intersection_of_lists(Filters.list_to_filter)) != 1 and verification_level == 2):
-                        filter_flag = Filters.filter_list_of_application_numbers_by_pattern(
-                            self.rows_for_date, application_number)
-                    filtered_list_of_appplications_numbers = Filters.filter()
-                    if(len(filtered_list_of_appplications_numbers) == 1):
-                        application_number = filtered_list_of_appplications_numbers[0]
-                    else:
-                        application_number = -1
-                    # if appication number was found
-                    if(application_number != -1):
-                        row_data = ExcelHandler.get_rowdata_by_application_number(
-                            self.rows_for_date, str(application_number))
-                        if(row_data != None):
-                            real_class_number = int(
-                                row_data['class_number'])
-                    # if(int(application_number) in application_numers_left and (class_number == real_class_number or class_number == -1 or verification_level == 2)):
-                    if(application_number != -1):
-                        app_num = int(application_number)
-                        x, y = self.get_cords_from_paragraph(elem)
-                        self.application_numbers_cords[str(app_num)] = {
-                            'x': x, 'y': y, 'page': pages[-1], }
-                        if(app_num in application_numers_left):
-                            application_numers_left.remove(app_num)
-                    else:
+            try:
+                row_data = None
+                application_number = -1
+                class_number = -1
+                real_class_number = -1
+                if(len(application_numers_left) == 0):
+                    break
+                # if tag is paragraph tag
+                if(elem.tag == self.ns['w']+'p'):
+                    text = self.get_text_from_paragraph(elem)
+                    text = Utils.clean_text(text)
+                    if(text is None):
+                        continue
+                    if(self.text_handler.check_if_tag_contain_appnum_tag(text, verification_level=verification_level)):
+                        text = self.get_next_two_paragraphs(
+                            elem)
+                        number_of_tags_identified += 1
+                        # get application number and class number from tag
+                        application_number, class_number = self.text_handler.parse_numbers_from_string(
+                            text)
+                        application_date = self.get_application_date(elem)
+                        countries_in_text = TextHandler.check_if_country_or_cities_exist_in_string(
+                            text, all_countries)
+                        cities_in_text = TextHandler.check_if_country_or_cities_exist_in_string(
+                            text, all_cities)
+                        applicants_in_text = TextHandler.check_if_applicant_exist_in_string(
+                            text, all_applicants)
+                        filter_flag = 'MULTIPLE'  # flag can have 3 values - MULTIPLE, ONE, ZERO
+                        Filters.init_filter(application_numers_left)
+                        # filter by application_number_and_class
+                        if(Utils.check_if_application_and_class_is_ok(application_number, class_number, application_numers_left)):
+                            filter_flag = Filters.filter_list_of_applications_number_by_app_num_and_class(
+                                self.rows_for_date, application_number, class_number)
+                        if(filter_flag in ["MULTIPLE", "ZERO"] and application_date != None):
+                            filter_flag = Filters.filter_list_of_application_numbers_by_application_date(
+                                self.rows_for_date, application_date)
+                        if(filter_flag in ["MULTIPLE", "ZERO"] and str(class_number).isdigit() and int(class_number) != -1):
+                            filter_flag = Filters.filter_list_of_application_numbers_by_class_number(
+                                self.rows_for_date, class_number)
+                        if(filter_flag in ["MULTIPLE", "ZERO"] and len(applicants_in_text) > 0):
+                            filter_flag = Filters.filter_list_of_application_numbers_by_applicant(
+                                self.rows_for_date, applicants_in_text)
+                        if(filter_flag in ["MULTIPLE", "ZERO"] and len(countries_in_text) > 0):
+                            filter_flag = Filters.filter_list_of_application_numbers_by_country(
+                                self.rows_for_date, countries_in_text)
+                        if(filter_flag in ["MULTIPLE", "ZERO"] and len(cities_in_text) > 0):
+                            filter_flag = Filters.filter_list_of_application_numbers_by_city(
+                                self.rows_for_date, cities_in_text)
+                        if(filter_flag in ["MULTIPLE", "ZERO"] and str(application_number).isdigit() is False and application_number != -1 and len(Filters.intersection_of_lists(Filters.list_to_filter)) != 1 and verification_level == 2):
+                            filter_flag = Filters.filter_list_of_application_numbers_by_pattern(
+                                self.rows_for_date, application_number)
+                        filtered_list_of_appplications_numbers = Filters.filter()
+                        if(len(filtered_list_of_appplications_numbers) == 1):
+                            application_number = filtered_list_of_appplications_numbers[0]
+                        else:
+                            application_number = -1
+                        # if appication number was found
+                        if(application_number != -1):
+                            row_data = ExcelHandler.get_rowdata_by_application_number(
+                                self.rows_for_date, str(application_number))
+                            if(row_data != None):
+                                real_class_number = int(
+                                    row_data['class_number'])
+                        # if(int(application_number) in application_numers_left and (class_number == real_class_number or class_number == -1 or verification_level == 2)):
+                        if(application_number != -1):
+                            app_num = int(application_number)
+                            x, y = self.get_cords_from_paragraph(elem)
+                            self.application_numbers_cords[str(app_num)] = {
+                                'x': x, 'y': y, 'page': pages[-1], }
+                            if(app_num in application_numers_left):
+                                application_numers_left.remove(app_num)
+                        else:
+                            logging.info(
+                                f" failed at tag last condition: {number_of_tags_identified}: {application_number}, {class_number}, {real_class_number}, {application_date}")
                         logging.info(
-                            f" failed at tag last condition: {number_of_tags_identified}: {application_number}, {class_number}, {real_class_number}, {application_date}")
-                    logging.info(
-                        f"{number_of_tags_identified}: {application_number}, {class_number}, {countries_in_text},{cities_in_text}, {application_date}")
-            # find page end tag
-            elif(elem.tag == self.ns["w"]+'footnotePr'):
-                pages.append(pages[-1]+1)
-                logging.info(f"new page {pages[-1]}")
-        # print(self.application_numbers_cords)
+                            f"{number_of_tags_identified}: {application_number}, {class_number}, {countries_in_text},{cities_in_text}, {application_date}")
+                # find page end tag
+                elif(elem.tag == self.ns["w"]+'footnotePr'):
+                    pages.append(pages[-1]+1)
+                    logging.info(f"new page {pages[-1]}")
+            # print(self.application_numbers_cords)
+            except Exception as e:
+                logging.exception(e)
+                continue
         logging.info(f"tags identified: {number_of_tags_identified}")
 
     def match_between_image_and_app_num(self):

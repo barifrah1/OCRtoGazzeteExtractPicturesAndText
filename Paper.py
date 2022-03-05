@@ -108,7 +108,7 @@ class Paper:
                 self.real_app_num_to_image_name_dict = {}
                 line = fa.readline()
                 while(line != ''):
-                    image_name = line.split('-')[IMAGE_NAME_INDEX]
+                    image_name = line.split('-')[IMAGE_NAME_INDEX].lower()
                     app_num_with_backslash = line.split('-')[APP_NUM_INDEX]
                     app_num = app_num_with_backslash.split('\n')[0]
                     real_app_num_to_image_name_dict[app_num] = image_name
