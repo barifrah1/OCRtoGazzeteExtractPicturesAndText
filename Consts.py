@@ -1,4 +1,4 @@
-FULL_RUN_MODE = False  # also print result to excel
+FULL_RUN_MODE = True  # also print result to excel
 EXCEL_FILE = r'OG in progress.xlsx'
 EXCEL_FILE_RESULTS = r'results.xlsx'
 SHEET_NAME = 'Sheet1'
@@ -11,3 +11,4 @@ ACCURACY_FILE_NAME = 'real.txt'
 PROJECT_PATH = 'C:/Users/Bar Ifrah/Documents/second_degree/OCRtoGazzeteExtractPicturesAndText'
 PATH_WKTHMLTOIMAGE = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltoimage.exe'
 IMAGE_OPTIONS = {'format': 'png', 'width': '250'}
+PAGE_DIVIDER_X_POSITION = 4000

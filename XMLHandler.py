@@ -4,12 +4,10 @@ from typing import ByteString, Text
 import zipfile
 import os
 from lxml import etree
-from Consts import XML_FOLDER, PAPERS_FOLDER
-import pandas as pd
+from Consts import XML_FOLDER, PAPERS_FOLDER, PAGE_DIVIDER_X_POSITION
 from ExcelHandler import ExcelHandler
 import Utils
 import docx
-from shutil import copy, rmtree
 from TextHandler import TextHandler
 import sys
 from Filters import Filters
@@ -255,7 +253,7 @@ class XMLHandler:
         # find best image according to it's position and tag position
         for key, value in images_not_used.items():
             # picture is on the left bar on the same page
-            if(value['page'] == tag_page and tag_y <= value['y'] and ((tag_x < 4000 and value['x'] < 4000) or (tag_x > 4000 and value['x'] > 4000))):
+            if(value['page'] == tag_page and tag_y <= value['y'] and ((tag_x < PAGE_DIVIDER_X_POSITION and value['x'] < PAGE_DIVIDER_X_POSITION) or (tag_x > PAGE_DIVIDER_X_POSITION and value['x'] > PAGE_DIVIDER_X_POSITION))):
                 candidates[key] = self.image_data[key]
         if(len(candidates) > 0):
             min_y = 100000000
@@ -267,7 +265,7 @@ class XMLHandler:
             return best
         else:
             for key, value in images_not_used.items():
-                if(value['page'] == tag_page and tag_y >= value['y'] and ((tag_x < 4000 and value['x'] > 4000))):
+                if(value['page'] == tag_page and tag_y >= value['y'] and ((tag_x < PAGE_DIVIDER_X_POSITION and value['x'] > PAGE_DIVIDER_X_POSITION))):
                     candidates[key] = self.image_data[key]
         if(len(candidates) > 0):
             min_y = 100000000
@@ -280,7 +278,7 @@ class XMLHandler:
         else:
             # picture is on the right bar on the next page
             for key, value in images_not_used.items():
-                if(value['page'] == tag_page+1 and tag_y >= value['y'] and ((tag_x > 4000 and value['x'] < 4000))):
+                if(value['page'] == tag_page+1 and tag_y >= value['y'] and ((tag_x > PAGE_DIVIDER_X_POSITION and value['x'] < PAGE_DIVIDER_X_POSITION))):
                     candidates[key] = self.image_data[key]
         if(len(candidates) > 0):
             min_y = 100000000

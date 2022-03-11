@@ -1,13 +1,4 @@
-import logging
-import os
-from lxml import etree
-from Consts import XML_FOLDER, PAPERS_FOLDER
-import pandas as pd
-from ExcelHandler import ExcelHandler
-import Utils
-from shutil import copy, rmtree
-from TextHandler import TextHandler
-from Filters import Filters
+from Consts import PAGE_DIVIDER_X_POSITION
 from XMLHandler import XMLHandler
 
 
@@ -29,7 +20,7 @@ class XMLHandler1920 (XMLHandler):
         # find best image according to it's position and tag position
         for key, value in images_not_used.items():
             # picture and tag is on the same bar on the same page, picature before tag
-            if(value['page'] == tag_page and tag_y >= value['y'] and ((tag_x < 4000 and value['x'] < 4000) or (tag_x > 4000 and value['x'] > 4000))):
+            if(value['page'] == tag_page and tag_y >= value['y'] and ((tag_x < PAGE_DIVIDER_X_POSITION and value['x'] < PAGE_DIVIDER_X_POSITION) or (tag_x > PAGE_DIVIDER_X_POSITION and value['x'] > PAGE_DIVIDER_X_POSITION))):
                 candidates[key] = self.image_data[key]
         if(len(candidates) > 0):
             min_y = -100000000
@@ -42,7 +33,7 @@ class XMLHandler1920 (XMLHandler):
         else:
             # image in the bottom left bar , tag is on the right bar at the top on the sampe page
             for key, value in images_not_used.items():
-                if(value['page'] == tag_page and tag_y <= value['y'] and ((tag_x > 4000 and value['x'] < 4000))):
+                if(value['page'] == tag_page and tag_y <= value['y'] and ((tag_x > PAGE_DIVIDER_X_POSITION and value['x'] < PAGE_DIVIDER_X_POSITION))):
                     candidates[key] = self.image_data[key]
         if(len(candidates) > 0):
             min_y = -100000000
@@ -55,7 +46,7 @@ class XMLHandler1920 (XMLHandler):
         else:
             # picture is page before on the left bar and the tag is on the next page in the top right bar
             for key, value in images_not_used.items():
-                if(value['page'] == tag_page-1 and tag_y < value['y'] and ((tag_x <= 4000 and value['x'] > 4000))):
+                if(value['page'] == tag_page-1 and tag_y < value['y'] and ((tag_x <= PAGE_DIVIDER_X_POSITION and value['x'] > PAGE_DIVIDER_X_POSITION))):
                     candidates[key] = self.image_data[key]
         if(len(candidates) > 0):
             min_y = -100000000
