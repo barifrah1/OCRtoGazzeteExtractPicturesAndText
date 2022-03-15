@@ -1,19 +1,11 @@
-import sys
-from shutil import copytree, rmtree, copy
-
 from pathy import shutil
-from Consts import PAPERS_FOLDER, STATUS_FOLDER, NOT_FOUND_FOLDER, XML_FOLDER, ACCURACY_FILE_NAME
-import pickle
+from Consts import PAPERS_FOLDER, STATUS_FOLDER, NOT_FOUND_FOLDER, XML_FOLDER, ACCURACY_FILE_NAME, XML_HANDLER_1920_YEAR, XML_HANDLER_1920_MONTH
 from ExcelHandler import ExcelHandler
 from StatusHandler import StatusHandler
-from TextHandler import TextHandler
-from TextTrademark import TextTrademark
-from ImageTrademark import ImageTrademark
 from ImageTrademarkXML import ImageTrademarkXML
 import Utils
 import os
 from PIL import Image
-from HtmlHandler import HtmlHandler
 from XMLHandler import XMLHandler
 from XMLHandler1920 import XMLHandler1920
 import logging
@@ -35,7 +27,9 @@ class Paper:
             self.status_handler = StatusHandler(self.file_name)
             logging.basicConfig(format='%(asctime)s : %(levelname)s : %(message)s',
                                 level=logging.INFO, filename=self.file_name+'.log')
-            if(self.file_name == '27-09-01'):
+            file_name_splited = self.file_name.split('-')
+            if((int(file_name_splited[0]) == XML_HANDLER_1920_YEAR and int(file_name_splited[1]) < XML_HANDLER_1920_MONTH) or
+               (int(file_name_splited[0]) < XML_HANDLER_1920_YEAR)):
                 self.xml = XMLHandler1920(self.file_name, self.rows_for_date)
             else:
                 self.xml = XMLHandler(
@@ -54,14 +48,10 @@ class Paper:
                 './'+PAPERS_FOLDER+'/'+self.file_name+'/'+NOT_FOUND_FOLDER)
             self.already_done, self.romans_done = self.get_already_finished(
                 excel, empty_mode=not is_status_file_path_exists)
-            self.countries = ExcelHandler.get_countries_from_data_frame(
-                self.rows_for_date)
-            self.cities = ExcelHandler.get_cities_from_data_frame(
-                self.rows_for_date)
-            self.applicants = ExcelHandler.get_applicants_from_data_frame(
-                self.rows_for_date)
-            # with open(self.paper_path, encoding="utf8") as fp:
-            #     self.html = HtmlHandler(fp)
+            self.countries = []
+            self.cities = []
+            self.applicants = []
+            self.bring_data_from_excel()
             self.trademarks = []
             self.images_app_nums_to_search = []
         except Exception as e:
@@ -70,7 +60,6 @@ class Paper:
             raise Exception(e)
 
     def extract(self, verification_level=1):
-        d = {}
         app_nums_left = []
         images_rows = Utils.get_only_zero_value_from_dict(self.already_done)
         for app_num in images_rows:
@@ -80,7 +69,6 @@ class Paper:
             self.images_app_nums_to_search = app_nums_left
             self.extract_image_trademarks(
                 verification_level=verification_level)
-        print(d)
 
     def extract_image_trademarks(self, verification_level=1):
         try:
@@ -155,6 +143,14 @@ class Paper:
             return done, romans
         else:
             return done, []
+
+    def bring_data_from_excel(self):
+        self.countries = ExcelHandler.get_countries_from_data_frame(
+            self.rows_for_date)
+        self.cities = ExcelHandler.get_cities_from_data_frame(
+            self.rows_for_date)
+        self.applicants = ExcelHandler.get_applicants_from_data_frame(
+            self.rows_for_date)
 
     def create_trademark(self, i, trademark_data, application_number_tag, image_name=None):
         if(image_name is not None):

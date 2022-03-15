@@ -39,9 +39,11 @@ class XMLHandler:
         self.images_path = path+'/word/media'
         self.images_names = os.listdir(self.images_path)
         self.rows_for_date = rows_for_date
+        self.ordered_paragraphs = []
         self.map_rId_to_image_name()
         self.build_namespaces_dict()
         self.find_all_images_in_xml()
+        self.sort_paragraphs_order()
 
     # map rId of all images from document.xml.rels file
     def map_rId_to_image_name(self):
@@ -310,13 +312,15 @@ class XMLHandler:
 
     # get w:p tag and extract it's cordinates using w:framePr x w:x and w:y
 
-    def get_cords_from_paragraph(self, p_tag):
+    def get_cords_from_paragraph(self, p_tag, continue_on_error=False):
         try:
             w_ppr = p_tag.find(self.ns['w']+'pPr')
             w_frame_pPr = w_ppr.find(self.ns['w']+'framePr')
             x = w_frame_pPr.attrib[self.ns['w']+'x']
             y = w_frame_pPr.attrib[self.ns['w']+'y']
         except Exception as e:
+            if(continue_on_error):
+                return -1, -1
             logging.exception(e)
             raise e
         return x, y
@@ -330,32 +334,71 @@ class XMLHandler:
                 text += w_t.text + \
                     ' ' if w_t is not None else ""
         return text
+    # order paragraph by page, then by column(x<4000 or x>4000 ), they by y cordinate
+
+    def sort_paragraphs_order(self):
+        paragraphs = []
+        pages = [0]
+        # create list of all paragraphs
+        for elem in self.tree.iter():
+            if(elem.tag == self.ns["w"]+'p'):
+                x, y = self.get_cords_from_paragraph(
+                    elem, continue_on_error=True)
+                paragraphs.append(
+                    (elem, pages[-1], int(x), int(y)))
+            elif(elem.tag == self.ns["w"]+'footnotePr'):
+                pages.append(pages[-1]+1)
+        s = sorted(paragraphs, key=lambda x: (
+            x[1], 0 if x[2] <= PAGE_DIVIDER_X_POSITION else 1, x[3]))  # (Paragraph,page,x,y)
+        self.ordered_paragraphs = s
+
+    # def get_next_two_paragraphs(self, elem):
+    #     flag = False
+    #     text = ""
+    #     i = 0
+    #     for elem2 in self.tree.iter():
+    #         if(elem2 == elem):
+    #             flag = True
+    #             text = self.get_text_from_paragraph(elem2)
+
+    #         if(flag != True):
+    #             continue
+    #         else:
+    #             if(elem != elem2 and elem2.tag == self.ns["w"]+'p'):
+    #                 i += 1
+    #                 text2 = self.get_text_from_paragraph(elem2)
+    #                 text2 = Utils.clean_text(text2)
+    #                 if(self.text_handler.check_if_tag_contain_appnum_tag(text2) is False):
+    #                     text += " " + Utils.clean_text(text2)
+    #                 else:
+    #                     text = Utils.clean_text(text)
+    #                     return text
+
+    #         if(i > 2):
+    #             text = Utils.clean_text(text)
+    #             return text
 
     def get_next_two_paragraphs(self, elem):
-        flag = False
-        text = ""
-        i = 0
-        for elem2 in self.tree.iter():
-            if(elem2 == elem):
-                flag = True
-                text = self.get_text_from_paragraph(elem2)
+        for index, p in enumerate(self.ordered_paragraphs):
+            if(p[0] == elem):
+                text = Utils.clean_text(self.get_text_from_paragraph(elem))
+                i = 1
+                num_of_paragraphs_added = 0
+                break
+        while(num_of_paragraphs_added < 2):
+            if(index+i < len(self.ordered_paragraphs)):
+                if(self.ordered_paragraphs[index+i][1] != -1):
+                    text2 = Utils.clean_text(self.get_text_from_paragraph(
+                        self.ordered_paragraphs[index+i][0])
+                    )
 
-            if(flag != True):
-                continue
-            else:
-                if(elem != elem2 and elem2.tag == self.ns["w"]+'p'):
+                else:
                     i += 1
-                    text2 = self.get_text_from_paragraph(elem2)
-                    text2 = Utils.clean_text(text2)
-                    if(self.text_handler.check_if_tag_contain_appnum_tag(text2) is False):
-                        text += " " + Utils.clean_text(text2)
-                    else:
-                        text = Utils.clean_text(text)
-                        return text
-
-            if(i > 2):
-                text = Utils.clean_text(text)
-                return text
+                text += text2
+                num_of_paragraphs_added += 1
+            else:
+                break
+        return text
 
     def get_application_date(self, elem):
         flag = False
