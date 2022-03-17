@@ -1,3 +1,4 @@
+import logging
 from ExcelHandler import ExcelHandler
 from Consts import ACCURACY_FILE_NAME, STATUS_FOLDER, XML_FOLDER
 import Utils
@@ -10,6 +11,8 @@ class AccuracyCalculator:
         self.real_app_num_to_image_name_dict = None
         self.result = result
         self.number_of_rows = number_of_rows
+        print(
+            f"number of rows for date {self.paper_name}: {self.number_of_rows}")
         self.accuracy = None
         if(int(paper_name.split('-')[0]) <= 25):
             self.read_accuracy_file_early_years(rows_for_date)
@@ -54,8 +57,13 @@ class AccuracyCalculator:
                         app_num_and_class = app_num_and_class_with_backslash.split('\n')[
                             0]
                         initial_and_class = app_num_and_class.split('_')
-                        class_number = initial_and_class[CLASS_INDEX]
-                        initial = initial_and_class[INITIAL_INDEX]
+                        try:
+                            class_number = initial_and_class[CLASS_INDEX]
+                            initial = initial_and_class[INITIAL_INDEX]
+                        except Exception as e:
+                            logging.exception(e)
+                            line = fa.readline()
+                            continue
                         extracted_app_num = ExcelHandler.get_application_numbers_by_class_and_initial(
                             rows_for_date, initial, class_number)
                         self.real_initial_and_class_to_image_name_dict[(

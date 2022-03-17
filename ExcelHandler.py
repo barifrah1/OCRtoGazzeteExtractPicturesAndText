@@ -1,6 +1,7 @@
 from difflib import SequenceMatcher
 from functools import reduce
 from logging import exception
+from numpy import NaN
 
 from rdflib import logging
 from Consts import EXCEL_FILE, EXCEL_FILE_RESULTS, PAPERS_FOLDER, SHEET_NAME
@@ -140,9 +141,14 @@ class ExcelHandler:
 
     @ staticmethod
     def get_application_numbers_by_class_and_initial(rows_for_date, initial_number, class_number):
-        for index, row in rows_for_date.iterrows():
-            if(str(int(row["Class No."])) == class_number and str(int(row["Application No."])) == initial_number):
-                return str(int(row["Application No."]))
+        try:
+            for index, row in rows_for_date.iterrows():
+                if(int(row["Class No."]) == int(class_number) and ((str(row["Initial No."]).isdigit() and int(row["Initial No."]) == int(initial_number)) or (int(row["Application No."]) == int(initial_number)))):
+                    return str(int(row["Application No."]))
+        except Exception as e:
+            logging.exception(e)
+            print(e)
+            raise e
         return '-1'
 
     @ staticmethod

@@ -28,14 +28,30 @@ class PaperEarlyYears(Paper):
                     app_num_and_class = app_num_and_class_with_backslash.split('\n')[
                         0]
                     initial_and_class = app_num_and_class.split('_')
-                    class_number = initial_and_class[CLASS_INDEX]
-                    initial = initial_and_class[INITIAL_INDEX]
+                    try:
+                        class_number = initial_and_class[CLASS_INDEX]
+                        initial = initial_and_class[INITIAL_INDEX]
+                    except Exception as e:
+                        logging.exception(e)
+                        logging.info(initial_and_class)
+                        line = fa.readline()
+                        continue
                     extracted_app_num = ExcelHandler.get_application_numbers_by_class_and_initial(
                         self.rows_for_date, initial, class_number)
                     if(extracted_app_num != '-1'):
                         real_app_num_to_image_name_dict[extracted_app_num] = image_name
                         real_initial_and_class_to_image_name_dict[(
                             class_number, initial)] = image_name
+                    # else:
+                    #     try:
+                    #         trademark_data = ExcelHandler.get_trademark_data_by_application_number(
+                    #             self.paper_date, initial)
+                    #         app_num = initial
+                    #         if(int(trademark_data[class_number]) == class_number):
+                    #             real_app_num_to_image_name_dict[app_num] = image_name
+                    #     except Exception as e:
+                    #         logging.exception(e)
+                    #         continue
                     line = fa.readline()
                 fa.close()
         except:
