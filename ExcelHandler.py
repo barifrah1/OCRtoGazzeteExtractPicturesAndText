@@ -139,6 +139,13 @@ class ExcelHandler:
         return li
 
     @ staticmethod
+    def get_application_numbers_by_class_and_initial(rows_for_date, initial_number, class_number):
+        for index, row in rows_for_date.iterrows():
+            if(str(int(row["Class No."])) == class_number and str(int(row["Application No."])) == initial_number):
+                return str(int(row["Application No."]))
+        return '-1'
+
+    @ staticmethod
     def get_application_numbers_by_application_date(rows_for_date, application_date):
         li = []
         for index, row in rows_for_date.iterrows():
